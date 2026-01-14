@@ -1,151 +1,130 @@
 import streamlit as st
+from streamlit_folium import st_folium
+import folium
+from folium.plugins import Draw
+import geopandas as gpd
+import json
 import pandas as pd
-import math
-from pathlib import Path
 
-# Set the title and favicon that appear in the Browser's tab bar.
+# Set page config
 st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+    page_title="Netherlands GIS Map",
+    page_icon="🗺️",
+    layout="wide"
 )
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+# Title
+st.title("Netherlands GIS Map with Point Selection")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# Initialize session state for storing points
+if 'points' not in st.session_state:
+    st.session_state.points = []
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+# Create a base map centered on the Netherlands
+def create_base_map():
+    # Coordinates for Netherlands center
+    netherlands_center = [52.1326, 5.2913]
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
+    # Create map with OpenStreetMap tiles
+    m = folium.Map(
+        location=netherlands_center,
+        zoom_start=7,
+        tiles="OpenStreetMap",
+        attr="OpenStreetMap contributors"
     )
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+    # Add draw control for creating points
+    draw = Draw(
+        export=True,
+        filename="netherlands_points.geojson",
+        position="topleft",
+        draw_options={
+            "polyline": False,
+            "polygon": False,
+            "circle": False,
+            "rectangle": False,
+            "marker": True,
+            "circlemarker": False
+        }
+    )
+    draw.add_to(m)
 
-    return gdp_df
+    # Add existing points from session state
+    for point in st.session_state.points:
+        folium.Marker(
+            location=[point['lat'], point['lon']],
+            popup=f"Point {point['id']}",
+            icon=folium.Icon(color="blue", icon="info-sign")
+        ).add_to(m)
 
-gdp_df = get_gdp_data()
+    return m
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
+# Create the map
+m = create_base_map()
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+# Display the map in Streamlit
+output = st_folium(m, width=1000, height=600)
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
+# Check if any features were drawn
+if output.get("last_active_drawing"):
+    # Get the last drawn feature
+    drawn_feature = output["last_active_drawing"]
 
-# Add some spacing
-''
-''
+    # Extract coordinates
+    if drawn_feature["geometry"]["type"] == "Point":
+        coords = drawn_feature["geometry"]["coordinates"]
+        lon, lat = coords[0], coords[1]
 
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
+        # Create a new point ID
+        new_id = len(st.session_state.points) + 1
 
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
+        # Add to session state
+        st.session_state.points.append({
+            "id": new_id,
+            "lat": lat,
+            "lon": lon
+        })
 
-countries = gdp_df['Country Code'].unique()
+        # Show success message
+        st.success(f"Point {new_id} added at ({lat:.4f}, {lon:.4f})")
 
-if not len(countries):
-    st.warning("Select at least one country")
+# Display current points in a table
+if st.session_state.points:
+    st.subheader("Current Points")
+    points_df = pd.DataFrame(st.session_state.points)
+    st.dataframe(points_df, use_container_width=True)
 
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
+    # Option to download points as CSV
+    csv = points_df.to_csv(index=False)
+    st.download_button(
+        label="Download Points as CSV",
+        data=csv,
+        file_name="netherlands_points.csv",
+        mime="text/csv"
+    )
 
-''
-''
-''
+    # Option to clear all points
+    if st.button("Clear All Points"):
+        st.session_state.points = []
+        st.rerun()
+else:
+    st.info("No points have been added yet. Click on the map to add points.")
 
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
+# Sidebar with instructions
+with st.sidebar:
+    st.header("Instructions")
+    st.markdown("""
+    1. **Add Points**: Click the marker icon in the top-left corner, then click on the map to place points.
+    2. **View Points**: Added points will appear in the table below the map.
+    3. **Download**: Export your points as a CSV file.
+    4. **Clear**: Remove all points with the "Clear All Points" button.
+    """)
 
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+    st.header("About")
+    st.markdown("""
+    This app uses:
+    - **Streamlit** for the web interface
+    - **Folium** for interactive maps
+    - **OpenStreetMap** for map tiles
+    - **GeoPandas** for geospatial operations
+    """)
