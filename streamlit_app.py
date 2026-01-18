@@ -1,245 +1,274 @@
 import streamlit as st
 from streamlit_folium import st_folium
 import folium
-from folium.plugins import Draw, MeasureControl
+from folium.plugins import Draw, MeasureControl, AntPath
 import numpy as np
-from math import cos, sin, radians
-import json
 from datetime import datetime, timedelta
-import plotly.graph_objects as go
-import random
 import openmeteo_requests
-
 import pandas as pd
 import requests_cache
 from retry_requests import retry
+import plotly.graph_objects as go
+import plotly.express as px
 
 # Set page config
 st.set_page_config(
-    page_title="Wind Forecast Visualization",
+    page_title="Soaralarm NL",
     page_icon="🌬️",
     layout="wide"
 )
 
+st.session_state.min_sink = 1.2
+st.session_state.max_speed = 100
+
 # Title
-st.title("Wind Forecast Visualization Tool")
+st.title("Soaralarm NL")
 
 # Initialize session state
 if 'points' not in st.session_state:
     # Load preset points
     st.session_state.points = [
         {
+            "id": 0,
+            "lat": 51.508907,
+            "lon": 3.462018,
+            "heading": 215,
+            "steepness": 45,
+            "name": "Zoutelande (Main Dune)",
+            "preset": True
+        },
+        {
             "id": 1,
-            "lat": 51.4833,
-            "lon": 3.6167,
-            "min_heading": 180,
-            "max_heading": 270,
-            "name": "Zoutelande",
+            "lat": 52.502193, 
+            "lon": 4.589126,
+            "name": "Wijk aan Zee (North)",
+            "heading": 284,
+            "steepness": 30,
             "preset": True
         },
         {
             "id": 2,
-            "lat": 52.4833,
-            "lon": 4.6167,
-            "name": "Wijk aan Zee",
-            "min_heading": 0,
-            "max_heading": 90,
+            "lat": 52.564313, 
+            "lon": 4.608334 ,
+            "name": "Castricum aan Zee",
+            "heading": 279,
+            "steepness": 30,
+            "preset": True
+        },
+        {
+            "id": 3,
+            "lat": 52.302953,  
+            "lon": 4.475574,
+            "name": "Langevelderslag (Noordwijk)",
+            "heading": 295,
+            "steepness": 30,
+            "preset": True
+        },
+        {
+            "id": 4,
+            "lat": 51.740870,
+            "lon": 3.810101,
+            "name": "Renesse (East)",
+            "heading": 13,
+            "steepness": 20,
+            "preset": True
+        },
+        {
+            "id": 5,
+            "lat": 51.741337, 
+            "lon": 3.760768,
+            "name": "Renesse (West)",
+            "heading": 340,
+            "steepness": 20,
             "preset": True
         }
     ]
 if 'selected_point' not in st.session_state:
     st.session_state.selected_point = None
-if 'current_time_idx' not in st.session_state:
-    st.session_state.current_time_idx = 0
+if 'current_time' not in st.session_state:
+    st.session_state.current_time = datetime.now()
 
 # Setup the Open-Meteo API client with cache and retry on error
 cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
 retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
 openmeteo = openmeteo_requests.Client(session = retry_session)
 
-# Make sure all required weather variables are listed here
-# The order of variables in hourly or daily is important to assign them correctly below
-url = "https://api.open-meteo.com/v1/forecast"
-params = {
-	"latitude": 52.52,
-	"longitude": 13.41,
-	"daily": ["sunrise", "sunset"],
-	"hourly": ["temperature_2m", "relative_humidity_2m", "precipitation", "cloud_cover", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "visibility"],
-	"models": "knmi_seamless",
-	"timezone": "Europe/Berlin",
-	"past_days": 2,
-	"forecast_days": 10,
-}
-responses = openmeteo.weather_api(url, params=params)
+def get_forecast():
 
-# Process first location. Add a for-loop for multiple locations or weather models
-response = responses[0]
-print(f"Coordinates: {response.Latitude()}°N {response.Longitude()}°E")
-print(f"Elevation: {response.Elevation()} m asl")
-print(f"Timezone: {response.Timezone()}{response.TimezoneAbbreviation()}")
-print(f"Timezone difference to GMT+0: {response.UtcOffsetSeconds()}s")
+    forecast = []
 
-# Process hourly data. The order of variables needs to be the same as requested.
-hourly = response.Hourly()
-hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
-hourly_relative_humidity_2m = hourly.Variables(1).ValuesAsNumpy()
-hourly_precipitation = hourly.Variables(2).ValuesAsNumpy()
-hourly_cloud_cover = hourly.Variables(3).ValuesAsNumpy()
-hourly_wind_speed_10m = hourly.Variables(4).ValuesAsNumpy()
-hourly_wind_direction_10m = hourly.Variables(5).ValuesAsNumpy()
-hourly_wind_gusts_10m = hourly.Variables(6).ValuesAsNumpy()
-hourly_visibility = hourly.Variables(7).ValuesAsNumpy()
+    # Make sure all required weather variables are listed here
+    # The order of variables in hourly or daily is important to assign them correctly below
+    url = "https://api.open-meteo.com/v1/forecast"
 
-hourly_data = {"date": pd.date_range(
-	start = pd.to_datetime(hourly.Time(), unit = "s", utc = True),
-	end =  pd.to_datetime(hourly.TimeEnd(), unit = "s", utc = True),
-	freq = pd.Timedelta(seconds = hourly.Interval()),
-	inclusive = "left"
-)}
+    params = {
+        "latitude": [point["lat"] for point in st.session_state.points],
+        "longitude": [point["lon"] for point in st.session_state.points],
+        "daily": ["sunrise", "sunset"],
+        "hourly": ["temperature_2m", "precipitation", "cloud_cover", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "visibility"],
+        "models": "knmi_seamless",
+        "timezone": "Europe/Berlin",
+        "past_days": 2,
+        "forecast_days": 10,
+        "temporal_resolution": "native",
+        "wind_speed_unit": "ms"
+    }
 
-hourly_data["temperature_2m"] = hourly_temperature_2m
-hourly_data["relative_humidity_2m"] = hourly_relative_humidity_2m
-hourly_data["precipitation"] = hourly_precipitation
-hourly_data["cloud_cover"] = hourly_cloud_cover
-hourly_data["wind_speed_10m"] = hourly_wind_speed_10m
-hourly_data["wind_direction_10m"] = hourly_wind_direction_10m
-hourly_data["wind_gusts_10m"] = hourly_wind_gusts_10m
-hourly_data["visibility"] = hourly_visibility
+    responses = openmeteo.weather_api(url, params=params)
 
-hourly_dataframe = pd.DataFrame(data = hourly_data)
-print("\nHourly data\n", hourly_dataframe)
+        # Process first location. Add a for-loop for multiple locations or weather models
+    for id, response in enumerate(responses):
+        # Process hourly data. The order of variables needs to be the same as requested.
+        hourly = response.Hourly()
+        hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
+        hourly_precipitation = hourly.Variables(1).ValuesAsNumpy()
+        hourly_wind_speed_10m = hourly.Variables(2).ValuesAsNumpy()
+        hourly_wind_direction_10m = hourly.Variables(3).ValuesAsNumpy()
+        hourly_wind_gusts_10m = hourly.Variables(4).ValuesAsNumpy()
+        hourly_visibility = hourly.Variables(5).ValuesAsNumpy()
 
-# Process daily data. The order of variables needs to be the same as requested.
-daily = response.Daily()
-daily_sunrise = daily.Variables(0).ValuesInt64AsNumpy()
-daily_sunset = daily.Variables(1).ValuesInt64AsNumpy()
+        hourly_data = {"date": pd.date_range(
+            start = pd.to_datetime(hourly.Time(), unit = "s", utc = True),
+            end =  pd.to_datetime(hourly.TimeEnd(), unit = "s", utc = True),
+            freq = pd.Timedelta(seconds = hourly.Interval()),
+            inclusive = "left"
+        )}
 
-daily_data = {"date": pd.date_range(
-	start = pd.to_datetime(daily.Time(), unit = "s", utc = True),
-	end =  pd.to_datetime(daily.TimeEnd(), unit = "s", utc = True),
-	freq = pd.Timedelta(seconds = daily.Interval()),
-	inclusive = "left"
-)}
+        hourly_data["temperature"] = hourly_temperature_2m
+        hourly_data["precipitation"] = hourly_precipitation
+        hourly_data["wind_speed"] = hourly_wind_speed_10m
+        hourly_data["wind_direction"] = hourly_wind_direction_10m
+        hourly_data["wind_gusts"] = hourly_wind_gusts_10m
+        hourly_data["visibility"] = hourly_visibility
 
-daily_data["sunrise"] = daily_sunrise
-daily_data["sunset"] = daily_sunset
 
-daily_dataframe = pd.DataFrame(data = daily_data)
-print("\nDaily data\n", daily_dataframe)
+        # Process daily data. The order of variables needs to be the same as requested.
+        daily = response.Daily()
+        daily_sunrise = daily.Variables(0).ValuesInt64AsNumpy()
+        daily_sunset = daily.Variables(1).ValuesInt64AsNumpy()
 
-# Function to generate mock wind forecast data
-def generate_wind_forecast():
-    """Generate mock wind forecast data for the next 24 hours"""
-    timestamps = [datetime.now() + timedelta(hours=i) for i in range(25)]
-    wind_data = []
+        daily_data = {"date": pd.date_range(
+            start = pd.to_datetime(daily.Time(), unit = "s", utc = True),
+            end =  pd.to_datetime(daily.TimeEnd(), unit = "s", utc = True),
+            freq = pd.Timedelta(seconds = daily.Interval()),
+            inclusive = "left"
+        )}
 
-    for i, ts in enumerate(timestamps):
-        # Generate wind data for each point
-        point_winds = []
-        for point in st.session_state.points:
-            # Base wind with some variation
-            base_speed = 5 + 3 * np.sin(i * np.pi / 12)  # Varies throughout the day
-            base_dir = 180 + 90 * np.sin(i * np.pi / 12)
+        daily_data["sunrise"] = pd.to_datetime(daily_sunrise, unit = "s", utc = True)
+        daily_data["sunset"] = pd.to_datetime(daily_sunset, unit = "s", utc = True)
 
-            # Add some randomness
-            speed = max(0, base_speed + np.random.normal(0, 0.5))
-            direction = (base_dir + np.random.normal(0, 15)) % 360
+        forecast.append({"id": id, "daily_data": daily_data, "hourly_data": hourly_data})
+    return forecast
 
-            point_winds.append({
-                "point_id": point["id"],
-                "speed": speed,
-                "direction": direction
-            })
+def calculate_day_forecast(date):
+    daily = [{  "sunrise": next(data for i, data in enumerate(point_forecast["daily_data"]["sunrise"])
+                                if point_forecast["daily_data"]["date"][i].date() == date),
+                "sunset": next(data for i, data in enumerate(point_forecast["daily_data"]["sunset"]) 
+                               if point_forecast["daily_data"]["date"][i].date() == date)
+                }
+                for point_forecast in st.session_state.forecast] 
+    
+    forecast = [{"id": point_forecast["id"], 
+                 
+                "sunrise": daily[point]["sunrise"],
 
-        wind_data.append({
-            "time": ts,
-            "winds": point_winds
-        })
+                "sunset": daily[point]["sunset"],
 
-    return wind_data
+                "time": [time for time in point_forecast["hourly_data"]["date"]
+                         if (time >= daily[point]["sunrise"]
+                             and time <= daily[point]["sunset"])],
 
-# Generate wind forecast data
-if 'wind_forecast' not in st.session_state:
-    st.session_state.wind_forecast = generate_wind_forecast()
+                "temperature": [data for i, data in enumerate(point_forecast["hourly_data"]["temperature"]) 
+                             if (point_forecast["hourly_data"]["date"][i] >= daily[point]["sunrise"]
+                                 and point_forecast["hourly_data"]["date"][i] <= daily[point]["sunset"])],
+
+                "precipitation": [data for i, data in enumerate(point_forecast["hourly_data"]["precipitation"]) 
+                             if (point_forecast["hourly_data"]["date"][i] >= daily[point]["sunrise"]
+                                 and point_forecast["hourly_data"]["date"][i] <= daily[point]["sunset"])],
+
+                "visibility": [data for i, data in enumerate(point_forecast["hourly_data"]["visibility"]) 
+                             if (point_forecast["hourly_data"]["date"][i] >= daily[point]["sunrise"]
+                                 and point_forecast["hourly_data"]["date"][i] <= daily[point]["sunset"])],
+
+                "wind_speed": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_speed"]) 
+                             if (point_forecast["hourly_data"]["date"][i] >= daily[point]["sunrise"]
+                                 and point_forecast["hourly_data"]["date"][i] <= daily[point]["sunset"])],
+
+                "wind_direction": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_direction"]) 
+                             if (point_forecast["hourly_data"]["date"][i] >= daily[point]["sunrise"]
+                                 and point_forecast["hourly_data"]["date"][i] <= daily[point]["sunset"])],
+
+                "wind_gusts": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_gusts"]) 
+                             if (point_forecast["hourly_data"]["date"][i] >= daily[point]["sunrise"]
+                                 and point_forecast["hourly_data"]["date"][i] <= daily[point]["sunset"])]
+                }
+                for point, point_forecast in enumerate(st.session_state.forecast)] 
+    return forecast
+
+def calculate_display_forecast(forecast):
+    disp_forecast = []
+
+    for point_forecast in forecast:
+        id = point_forecast["id"]
+        point = st.session_state.points[next(i for i, p in enumerate(st.session_state.points) if p["id"] == id)]
+        wind_pizza = np.zeros(int(360/22.5))
+
+        for i, time in enumerate(point_forecast["time"]):
+            if (point_forecast["precipitation"][i] < 0.1
+            and point_forecast["visibility"][i] > 0.1
+            and point_forecast["wind_speed"][i]*np.sin(np.deg2rad(point["steepness"])) > st.session_state.min_sink
+            and point_forecast["wind_speed"][i] < st.session_state.max_speed):
+                rel_head = point_forecast["wind_direction"][i] - point["heading"]
+                wind_pizza[int(np.floor(rel_head/22.5))] += 1
+        
+        disp_forecast.append({"id":id,
+                               "wind_pizza":wind_pizza})
+    return disp_forecast
 
 # Function to create heading lines with color based on wind suitability
-def add_heading_lines(m, point, wind_dir=None, line_length=0.05):
-    """Add lines showing min and max headings from a point with color coding"""
-    lat = point['lat']
-    lon = point['lon']
-    min_heading = point['min_heading']
-    max_heading = point['max_heading']
+def draw_points_pizza(m, point_forecast, line_length=0.02):
+    for pf in point_forecast:
+        id = pf["id"]
+        point = st.session_state.points[next(i for i, p in enumerate(st.session_state.points) if p["id"] == id)]
+        lat = point['lat']
+        lon = point['lon']
+        head = np.deg2rad(point['heading'])
 
-    # Convert to radians
-    min_rad = radians(min_heading)
-    max_rad = radians(max_heading)
+        for i, slice in enumerate(pf["wind_pizza"]):
+            min_x = lon + 1.63*line_length*np.min([slice, 5]) * np.sin(head+np.deg2rad(22.5)*i)
+            min_y = lat + line_length*np.min([slice, 5]) * np.cos(head+np.deg2rad(22.5)*i)
+            max_x = lon + 1.63*line_length*np.min([slice, 5]) * np.sin(head+np.deg2rad(22.5)*(i+1))
+            max_y = lat + line_length*np.min([slice, 5]) * np.cos(head+np.deg2rad(22.5)*(i+1))
 
-    # Calculate line endpoints
-    min_x = lon + 1.63*line_length * cos(min_rad)
-    min_y = lat + line_length * sin(min_rad)
-    x_1 = lon + 1.63*line_length * cos((3*min_rad+max_rad)/4)
-    y_1 = lat + line_length * sin((3*min_rad+max_rad)/4)
-    x_2 = lon + 1.63*line_length * cos((min_rad+max_rad)/2)
-    y_2 = lat + line_length * sin((min_rad+max_rad)/2)
-    x_3 = lon + 1.63*line_length * cos((min_rad+3*max_rad)/4)
-    y_3 = lat + line_length * sin((min_rad+3*max_rad)/4)
-    max_x = lon + 1.63*line_length * cos(max_rad)
-    max_y = lat + line_length * sin(max_rad)
+            if i == 0 or i == 360/22.5 - 1:
+                color = "green"
+            elif i == 1 or i == 360/22.5 - 2:
+                color = "orange"
+            else:
+                color = "red"
 
-    # Determine color based on wind direction
-    if wind_dir is not None:
-        # Check if wind is within acceptable range
-        if (min_heading <= wind_dir <= max_heading) or (max_heading <= wind_dir <= min_heading):
-            color = "green"
-            popup_text = f"Point {point['id']}: {point.get('name', 'Custom Point')}\nHeadings: {min_heading}° to {max_heading}°\nWind: {wind_dir:.0f}° (Suitable)"
-        else:
-            color = "red"
-            popup_text = f"Point {point['id']}: {point.get('name', 'Custom Point')}\nHeadings: {min_heading}° to {max_heading}°\nWind: {wind_dir:.0f}° (Unsuitable)"
-    else:
-        color = "gray"
-        popup_text = f"Point {point['id']}: {point.get('name', 'Custom Point')}\nHeadings: {min_heading}° to {max_heading}°"
+            folium.Polygon(
+                locations=[[lat, lon], [min_y, min_x], [max_y, max_x]],
+                color=color,
+                weight=2,
+                fill=True,
+                fill_color=color,
+                fill_opacity=0.5,
+            ).add_to(m)
 
-    folium.Polygon(
-        locations=[[lat, lon], [min_y, min_x], [y_1, x_1], [y_2, x_2], [y_3, x_3], [max_y, max_x]],
-        color=color,
-        weight=2,
-        fill=True,
-        fill_color=color,
-        fill_opacity=0.5,
-        popup=popup_text
-    ).add_to(m)
-
-    # Add center dot
-    folium.CircleMarker(
-        location=[lat, lon],
-        radius=5,
-        color="black",
-        fill=True,
-        fill_color="black",
-        fill_opacity=1,
-        popup=f"Point {point['id']}: {point.get('name', 'Custom Point')}"
-    ).add_to(m)
-
-# Function to create wind arrows
-def add_wind_arrows(m, lat, lon, speed, direction, time_idx):
-    """Add animated wind arrows to the map"""
-    # Calculate arrow endpoint
-    angle_rad = radians(direction)
-    arrow_length = 0.01 * speed  # Scale with wind speed
-    end_lat = lat + arrow_length * sin(angle_rad)
-    end_lon = lon + arrow_length * cos(angle_rad)
-
-    # Create arrow
-    folium.PolyLine(
-        locations=[[lat, lon], [end_lat, end_lon]],
-        color="blue",
-        weight=3,
-        arrowheads={
-            'size': '15%',
-            'frequency': 'end'
-        },
-        popup=f"Wind: {speed:.1f} m/s, {direction:.0f}°"
-    ).add_to(m)
+        name = point["name"]
+        lat = point["lat"]
+        lon = point["lon"]
+        # Add center dot
+        folium.CircleMarker(
+            location=[lat, lon],
+            radius=5,
+            color="black",
+            fill=True,
+            fill_color="black",
+            fill_opacity=1,
+            popup=f"{name}. google.com/maps/place/{lat}°N+{lon}°E"
+        ).add_to(m)
 
 # Create editing map (simple markers only)
 def create_editing_map():
@@ -273,22 +302,25 @@ def create_editing_map():
 
     # Add existing points as simple markers
     for point in st.session_state.points:
-        icon_color = "blue" if not point.get("preset", False) else "green"
+        icon_color = "red" if not point.get("preset", False) else "black"
+        name = point["name"]
+        lat = point["lat"]
+        lon = point["lon"]
         folium.Marker(
             location=[point['lat'], point['lon']],
-            icon=folium.Icon(color=icon_color, icon="map-marker", prefix="fa"),
-            popup=f"Point {point['id']}: {point.get('name', 'Custom Point')}"
+            icon=folium.Icon(color=icon_color, icon="wind", prefix="fa"),
+            popup=f"{name}, {lat}N°, {lon}E°"
         ).add_to(m)
 
     return m
 
 # Create display map (with heading polygons and wind animations)
-def create_display_map(time_idx=None):
-    netherlands_center = [52.1326, 5.2913]
+def create_display_map(date=datetime.now()):
+    netherlands_center = [52.5, 5.2913]
 
     m = folium.Map(
         location=netherlands_center,
-        zoom_start=7,
+        zoom_start=8,
         tiles="OpenStreetMap",
         attr="OpenStreetMap contributors"
     )
@@ -297,41 +329,27 @@ def create_display_map(time_idx=None):
     MeasureControl().add_to(m)
 
     # Get wind data for current time
-    if time_idx is not None and time_idx < len(st.session_state.wind_forecast):
-        current_wind_data = st.session_state.wind_forecast[time_idx]['winds']
-        wind_dict = {wind['point_id']: wind for wind in current_wind_data}
-    else:
-        wind_dict = {}
+    if 'forecast' not in st.session_state:
+        st.session_state.forecast = get_forecast()
+    
+    st.session_state.day_forecast = calculate_day_forecast(date)
+    display_forecast = calculate_display_forecast(st.session_state.day_forecast)
 
     # Add existing points with heading polygons
-    for point in st.session_state.points:
-        wind_data = wind_dict.get(point['id'])
-        wind_dir = wind_data['direction'] if wind_data else None
-        add_heading_lines(
-            m,
-            point,
-            wind_dir=wind_dir
-        )
-
-        # Add wind arrows if we have wind data
-        if wind_data:
-            add_wind_arrows(
-                m,
-                point['lat'],
-                point['lon'],
-                wind_data['speed'],
-                wind_data['direction'],
-                time_idx
-            )
+    draw_points_pizza(m, display_forecast)
 
     return m
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["Editing", "Visualization", "Information"])
+tab1, tab2, tab3 = st.tabs(["Edit Points", "Map Forecast", "Point Forecast"])
+
+if 'forecast' not in st.session_state:
+    st.session_state.forecast = get_forecast()
+
 
 with tab1:
     st.header("Edit Points")
-    st.markdown("Add, delete, or modify points. Preset points are shown in green.")
+    st.markdown("Add, delete, or modify points. Preset points are shown in black.")
 
     # Create and display editing map
     m_edit = create_editing_map()
@@ -348,27 +366,29 @@ with tab1:
             with st.form(key=f"point_{new_id}_form"):
                 st.subheader(f"Configure Point {new_id}")
 
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 with col1:
-                    min_heading = st.number_input(
-                        "Minimum Heading (degrees)",
+                    name = st.text_input(
+                        "Name of location"
+                    )
+                with col2:
+                    heading = st.number_input(
+                        "Best wind heading in degrees",
                         min_value=0,
                         max_value=360,
                         value=0,
                         step=1,
-                        help="0° = North, 90° = East"
+                        help="0 is north, 90 is east, 180 is south and 270 is west."
                     )
-                with col2:
-                    max_heading = st.number_input(
-                        "Maximum Heading (degrees)",
+                with col3:
+                    steepness = st.number_input(
+                        "Steepness of the slope in degrees",
                         min_value=0,
-                        max_value=360,
-                        value=90,
+                        max_value=90,
+                        value=0,
                         step=1,
-                        help="0° = North, 90° = East"
+                        help="0 is flat, 90 is a vertical wall."
                     )
-
-                point_name = st.text_input("Point Name (optional)", "")
 
                 submit_button = st.form_submit_button("Save Point")
 
@@ -378,12 +398,12 @@ with tab1:
                         "id": new_id,
                         "lat": lat,
                         "lon": lon,
-                        "min_heading": min_heading,
-                        "max_heading": max_heading,
-                        "name": point_name if point_name else None,
+                        "name": name,
+                        "heading": heading,
+                        "steepness": steepness,
                         "preset": False
                     })
-                    st.success(f"Point {new_id} saved with headings {min_heading}° to {max_heading}°!")
+                    st.success(f"{name} saved with heading {heading}° and steepness of {steepness}°!")
                     st.rerun()
 
     # Add points management table
@@ -400,12 +420,11 @@ with tab1:
         edited_df = st.data_editor(
             points_df,
             column_config={
-                "id": st.column_config.NumberColumn("ID", disabled=True),
                 "name": st.column_config.TextColumn("Name"),
                 "lat": st.column_config.NumberColumn("Latitude", format="%.5f"),
                 "lon": st.column_config.NumberColumn("Longitude", format="%.5f"),
-                "min_heading": st.column_config.NumberColumn("Min Heading (°)", help="0° = North"),
-                "max_heading": st.column_config.NumberColumn("Max Heading (°)", help="0° = North"),
+                "heading": st.column_config.NumberColumn("Heading (°)", help="0° is North"),
+                "steepness": st.column_config.NumberColumn("Steepness", help="0° is flat"),
                 "preset": st.column_config.CheckboxColumn("Preset", disabled=True),
                 "Delete": st.column_config.CheckboxColumn("Delete?")
             },
@@ -428,71 +447,37 @@ with tab1:
                 st.rerun()
 
         # Handle edits (excluding the Delete column)
-        editable_columns = ['name', 'lat', 'lon', 'min_heading', 'max_heading']
+        editable_columns = ['name', 'lat', 'lon', 'heading', 'steepness']
         if not edited_df[editable_columns].equals(points_df[editable_columns]):
             st.session_state.points = edited_df.drop('Delete', axis=1).to_dict('records')
             st.success("Points updated!")
             st.rerun()
-
-        # Download options
-        col1, col2 = st.columns(2)
-        with col1:
-            csv = points_df.drop('Delete', axis=1).to_csv(index=False)
-            st.download_button(
-                label="Download Points as CSV",
-                data=csv,
-                file_name="heading_points.csv",
-                mime="text/csv"
-            )
-        with col2:
-            geo_json = json.dumps({
-                "type": "FeatureCollection",
-                "features": [{
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [p['lon'], p['lat']]
-                    },
-                    "properties": {
-                        "id": p['id'],
-                        "name": p.get('name'),
-                        "min_heading": p['min_heading'],
-                        "max_heading": p['max_heading'],
-                        "preset": p.get('preset', False)
-                    }
-                } for p in st.session_state.points]
-            })
-            st.download_button(
-                label="Download as GeoJSON",
-                data=geo_json,
-                file_name="heading_points.geojson",
-                mime="application/json"
-            )
-    else:
-        st.info("No points have been added yet. Click on the map to add a new point.")
 
 with tab2:
     st.header("Visualization")
     st.markdown("View points with wind conditions. Click on points to see details in the Information tab.")
 
     # Time slider
-    time_options = [f"{i}:00" for i in range(25)]
-    selected_time = st.slider(
-        "Select Time",
-        min_value=0,
-        max_value=23,
-        value=st.session_state.current_time_idx,
-        format="%d:00",
-        help="Select the forecast time to visualize"
+    if 'dates' not in st.session_state:
+        st.session_state.dates = list(set([date.date() for date in st.session_state.forecast[0]["daily_data"]["date"]]))
+        st.session_state.dates.sort()
+    if 'current_date' not in st.session_state:
+        st.session_state.current_date = datetime.now().date()
+
+    selected_date = st.select_slider(
+        "Select Date",
+        options=st.session_state.dates,
+        value=st.session_state.current_date
     )
 
-    # Update current time in session state
-    if selected_time != st.session_state.current_time_idx:
-        st.session_state.current_time_idx = selected_time
+    # Update current date in session state
+    if selected_date != st.session_state.current_date:
+        st.session_state.current_date = selected_date
         st.rerun()
 
+
     # Create and display display map
-    m_display = create_display_map(time_idx=st.session_state.current_time_idx)
+    m_display = create_display_map(date=st.session_state.current_date)
     output = st_folium(m_display, width=1000, height=600, returned_objects=["last_object_clicked"])
 
     # Handle point selection from map click
@@ -514,175 +499,206 @@ with tab2:
                 except:
                     pass
 
-    # Show current wind information
-    if st.session_state.current_time_idx < len(st.session_state.wind_forecast):
-        current_time = st.session_state.wind_forecast[st.session_state.current_time_idx]['time']
-        st.write(f"**Current Time**: {current_time.strftime('%Y-%m-%d %H:%M')}")
-
-        # Show wind summary
-        wind_data = st.session_state.wind_forecast[st.session_state.current_time_idx]['winds']
-        if wind_data:
-            avg_speed = np.mean([w['speed'] for w in wind_data])
-            st.write(f"**Average Wind Speed**: {avg_speed:.1f} m/s")
-
-            # Count suitable winds
-            suitable_count = 0
-            for point in st.session_state.points:
-                wind = next((w for w in wind_data if w['point_id'] == point['id']), None)
-                if wind:
-                    if (point['min_heading'] <= wind['direction'] <= point['max_heading']) or \
-                       (point['max_heading'] <= wind['direction'] <= point['min_heading']):
-                        suitable_count += 1
-
-            st.write(f"**Suitable Wind Conditions**: {suitable_count}/{len(st.session_state.points)} points")
-
 with tab3:
-    st.header("Wind Information")
-    st.markdown("View detailed wind information for selected points.")
+    st.header("Point Forecast")
+    st.markdown("View detailed weather forecasts for selected points.")
 
-    if st.session_state.points:
-        # Create dropdown to select point
-        point_options = {
-            f"Point {p['id']} - {p.get('name', 'Custom Point')} ({p['lat']:.4f}, {p['lon']:.4f})": i
-            for i, p in enumerate(st.session_state.points)
-        }
+    # Date selection slider (same as tab 2)
+    if 'dates' not in st.session_state:
+        st.session_state.dates = list(set([date.date() for date in st.session_state.forecast[0]["daily_data"]["date"]]))
+        st.session_state.dates.sort()
+    if 'current_date' not in st.session_state:
+        st.session_state.current_date = datetime.now().date()
 
-        # Use selected point from session state or default to first
-        default_idx = st.session_state.selected_point if st.session_state.selected_point is not None else 0
-        selected_idx = st.selectbox(
-            "Select a point:",
-            options=list(point_options.keys()),
-            index=default_idx
-        )
+    selected_date = st.select_slider(
+        "Select Date",
+        options=st.session_state.dates,
+        value=st.session_state.current_date,
+        key="tab3_date_slider"
+    )
 
-        # Update selected point in session state
-        st.session_state.selected_point = point_options[selected_idx]
-        selected_point = st.session_state.points[st.session_state.selected_point]
+    if selected_date != st.session_state.current_date:
+        st.session_state.current_date = selected_date
+        st.rerun()
 
-        # Show point details
-        st.subheader(f"Point {selected_point['id']} Details")
-        st.write(f"**Name**: {selected_point.get('name', 'Custom Point')}")
-        st.write(f"**Location**: {selected_point['lat']:.5f}, {selected_point['lon']:.5f}")
-        st.write(f"**Heading Range**: {selected_point['min_heading']}° to {selected_point['max_heading']}°")
+    # Point selection dropdown - ensure we always have a valid selection
+    point_options = {f"{point['name']}": i for i, point in enumerate(st.session_state.points)}
 
-        # Show wind forecast charts
-        st.subheader("Wind Forecast (Next 24 Hours)")
+    # Initialize selected_point if not set
+    if 'selected_point' not in st.session_state or st.session_state.selected_point is None:
+        st.session_state.selected_point = 0  # Default to first point
 
-        # Prepare data for charts
-        timestamps = [data['time'] for data in st.session_state.wind_forecast]
-        speeds = []
-        directions = []
-        suitable = []
+    selected_point_idx = st.selectbox(
+        "Select Point",
+        options=list(point_options.keys()),
+        index=st.session_state.selected_point,
+        key="point_selector"
+    )
 
-        for data in st.session_state.wind_forecast:
-            wind = next((w for w in data['winds'] if w['point_id'] == selected_point['id']), None)
-            if wind:
-                speeds.append(wind['speed'])
-                directions.append(wind['direction'])
-                # Check if wind is suitable
-                if (selected_point['min_heading'] <= wind['direction'] <= selected_point['max_heading']) or \
-                   (selected_point['max_heading'] <= wind['direction'] <= selected_point['min_heading']):
-                    suitable.append(True)
-                else:
-                    suitable.append(False)
-            else:
-                speeds.append(None)
-                directions.append(None)
-                suitable.append(None)
+    # Update selected point in session state
+    st.session_state.selected_point = point_options[selected_point_idx]
 
-        # Create wind speed chart
-        fig_speed = go.Figure()
-        fig_speed.add_trace(go.Scatter(
-            x=timestamps,
-            y=speeds,
-            mode='lines+markers',
-            name='Wind Speed',
-            line=dict(color='royalblue', width=2),
-            marker=dict(size=6)
+    # Get the selected point data
+    selected_point = st.session_state.points[st.session_state.selected_point]
+    day_forecast = calculate_day_forecast(st.session_state.current_date)[st.session_state.selected_point]
+
+    # Create separate graphs
+    if day_forecast["time"]:
+        # 1. Wind Speed and Gust Speed Graph
+        st.subheader("Wind Speed and Gusts")
+        fig_wind = go.Figure()
+
+        fig_wind.add_trace(go.Scatter(
+            x=day_forecast["time"],
+            y=day_forecast["wind_speed"],
+            name="Wind Speed",
+            line=dict(color='blue', width=2),
+            fill='tonexty'
         ))
-        fig_speed.update_layout(
-            title='Wind Speed Forecast (m/s)',
-            xaxis_title='Time',
-            yaxis_title='Wind Speed (m/s)',
-            hovermode='x unified'
-        )
-        st.plotly_chart(fig_speed, use_container_width=True)
 
-        # Create wind direction chart
+        fig_wind.add_trace(go.Scatter(
+            x=day_forecast["time"],
+            y=day_forecast["wind_gusts"],
+            name="Gust Speed",
+            line=dict(color='red', width=2, dash='dash')
+        ))
+
+        fig_wind.update_layout(
+            title="Wind Speed and Gusts",
+            xaxis_title="Time",
+            yaxis_title="Speed (km/h)",
+            hovermode="x unified",
+            height=400
+        )
+
+        st.plotly_chart(fig_wind, use_container_width=True)
+
+        # 2. Wind Direction Graph with Boundaries
+        st.subheader("Wind Direction")
         fig_dir = go.Figure()
-        fig_dir.add_trace(go.Scatterpolar(
-            r=speeds,
-            theta=directions,
-            mode='markers',
-            name='Wind Direction',
-            marker=dict(
-                color=speeds,
-                colorscale='Viridis',
-                size=10,
-                colorbar=dict(title='Speed (m/s)')
-            )
+
+        lower_bound = selected_point["heading"] - 45
+        upper_bound = selected_point["heading"] + 45
+
+        # Add boundaries as horizontal lines
+        fig_dir.add_hline(y=lower_bound, line_dash="dot", line_color="green",
+                         annotation_text=f"Lower Bound ({lower_bound}°)")
+        fig_dir.add_hline(y=upper_bound, line_dash="dot", line_color="green",
+                         annotation_text=f"Upper Bound ({upper_bound}°)")
+
+        # Add ideal range fill
+        fig_dir.add_hrect(y0=lower_bound, y1=upper_bound,
+                         fillcolor="rgba(0,255,0,0.1)", opacity=0.2,
+                         line_width=0)
+
+        # Add wind direction trace
+        fig_dir.add_trace(go.Scatter(
+            x=day_forecast["time"],
+            y=day_forecast["wind_direction"],
+            name="Wind Direction",
+            line=dict(color='purple', width=2)
         ))
+
+        # Add heading line
+        fig_dir.add_hline(y=selected_point["heading"], line_dash="solid", line_color="black",
+                         annotation_text=f"Ideal Heading ({selected_point['heading']}°)")
+
         fig_dir.update_layout(
-            title='Wind Direction and Speed',
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, max(speeds)*1.2]),
-                angularaxis=dict(direction='clockwise', rotation=90)
-            )
+            title=f"Wind Direction (Ideal: {selected_point['heading']}° ±45°)",
+            xaxis_title="Time",
+            yaxis_title="Direction (°)",
+            hovermode="x unified",
+            height=400
         )
+
         st.plotly_chart(fig_dir, use_container_width=True)
 
-        # Show wind suitability over time
-        st.subheader("Wind Suitability Over Time")
-        fig_suitable = go.Figure()
-        fig_suitable.add_trace(go.Scatter(
-            x=timestamps,
-            y=[1 if s else 0 for s in suitable],
-            mode='lines+markers',
-            name='Suitable',
-            line=dict(color='green', width=2),
-            marker=dict(size=8)
+        # 3. Temperature and Precipitation Graph
+        st.subheader("Temperature and Precipitation")
+        fig_temp_precip = go.Figure()
+
+        # Temperature on primary y-axis
+        fig_temp_precip.add_trace(go.Scatter(
+            x=day_forecast["time"],
+            y=day_forecast["temperature"],
+            name="Temperature",
+            line=dict(color='orange', width=2),
+            yaxis="y1"
         ))
-        fig_suitable.update_layout(
-            title='Wind Suitability (1 = Suitable, 0 = Unsuitable)',
-            xaxis_title='Time',
-            yaxis_title='Suitability',
-            yaxis=dict(tickvals=[0, 1], ticktext=['Unsuitable', 'Suitable']),
-            hovermode='x unified'
+
+        # Precipitation on secondary y-axis
+        fig_temp_precip.add_trace(go.Bar(
+            x=day_forecast["time"],
+            y=day_forecast["precipitation"],
+            name="Precipitation",
+            marker_color='lightblue',
+            yaxis="y2"
+        ))
+
+        fig_temp_precip.update_layout(
+            title="Temperature and Precipitation",
+            xaxis_title="Time",
+            yaxis=dict(
+                title="Temperature (°C)",
+                side="left"
+            ),
+            yaxis2=dict(
+                title="Precipitation (mm)",
+                overlaying="y",
+                side="right"
+            ),
+            hovermode="x unified",
+            height=400
         )
-        st.plotly_chart(fig_suitable, use_container_width=True)
 
-        # Show detailed forecast table
-        st.subheader("Detailed Forecast Data")
-        forecast_df = pd.DataFrame({
-            'Time': timestamps,
-            'Wind Speed (m/s)': [f"{s:.1f}" if s is not None else "N/A" for s in speeds],
-            'Wind Direction (°)': [f"{d:.0f}" if d is not None else "N/A" for d in directions],
-            'Suitable': ['✅' if s else '❌' for s in suitable]
-        })
-        st.dataframe(forecast_df, use_container_width=True)
+        st.plotly_chart(fig_temp_precip, use_container_width=True)
 
-        # Show summary statistics
-        st.subheader("Summary Statistics")
-        valid_speeds = [s for s in speeds if s is not None]
-        valid_directions = [d for d in directions if d is not None]
-        suitable_winds = [s for s, suit in zip(valid_speeds, suitable) if suit and s is not None]
+        # Additional information
+        st.subheader("Forecast Summary")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Sunrise", day_forecast["sunrise"].strftime('%H:%M'))
+        with col2:
+            st.metric("Sunset", day_forecast["sunset"].strftime('%H:%M'))
+        with col3:
+            avg_wind = np.mean(day_forecast["wind_speed"])
+            st.metric("Avg Wind Speed", f"{avg_wind:.1f} km/h")
 
-        if valid_speeds:
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Avg Wind Speed", f"{np.mean(valid_speeds):.1f} m/s")
-            with col2:
-                st.metric("Max Wind Speed", f"{np.max(valid_speeds):.1f} m/s")
-            with col3:
-                st.metric("Min Wind Speed", f"{np.min(valid_speeds):.1f} m/s")
+        # Wind direction analysis
+        st.subheader("Wind Direction Analysis")
+        within_bounds = sum(1 for dir in day_forecast["wind_direction"]
+                           if lower_bound <= dir <= upper_bound)
+        total_hours = len(day_forecast["wind_direction"])
+        percentage = (within_bounds / total_hours) * 100 if total_hours > 0 else 0
 
-            if suitable_winds:
-                st.success(f"✅ Suitable wind conditions found! Average speed: {np.mean(suitable_winds):.1f} m/s")
-                st.write(f"Suitable periods: {sum(suitable)}/{len(suitable)} hours")
-            else:
-                st.warning("⚠️ No suitable wind conditions within the specified heading range.")
+        st.write(f"**Wind within ideal range ({lower_bound}°-{upper_bound}°)**: {within_bounds}/{total_hours} hours ({percentage:.1f}%)")
+
+        # Create a wind direction distribution chart
+        fig_dir_dist = go.Figure()
+        fig_dir_dist.add_trace(go.Histogram(
+            x=day_forecast["wind_direction"],
+            nbinsx=36,
+            marker_color='lightblue',
+            name='Wind Direction'
+        ))
+
+        # Add boundaries to the histogram
+        fig_dir_dist.add_vline(x=lower_bound, line_dash="dash", line_color="green")
+        fig_dir_dist.add_vline(x=upper_bound, line_dash="dash", line_color="green")
+        fig_dir_dist.add_vline(x=selected_point["heading"], line_dash="solid", line_color="black")
+
+        fig_dir_dist.update_layout(
+            title="Wind Direction Distribution",
+            xaxis_title="Direction (°)",
+            yaxis_title="Frequency",
+            bargap=0.1,
+            height=400
+        )
+
+        st.plotly_chart(fig_dir_dist, use_container_width=True)
+
     else:
-        st.info("No points available. Please add points in the Editing tab first.")
+        st.warning("No forecast data available for the selected date.")
 
 # Sidebar with instructions
 with st.sidebar:
@@ -693,18 +709,20 @@ with st.sidebar:
     - Set heading ranges for each point
     - Edit point parameters in the table below
     - Check boxes to delete custom points (preset points cannot be deleted)
-    - Download data as CSV or GeoJSON
 
-    **Visualization Tab**:
+    **Map Forecast Tab**:
     - View points with wind conditions
-    - Use the time slider to see wind forecasts at different times
-    - Green sectors = suitable wind, Red sectors = unsuitable wind
-    - Click on points to view details in the Information tab
+    - Use the date slider to see wind forecasts for different days
+    - Green sectors = suitable wind, Orange = marginal, Red = unsuitable
 
-    **Information Tab**:
-    - Select a point from the dropdown
-    - View detailed wind forecast charts and data
-    - Analyze wind suitability for your headings
+    **Point Forecast Tab**:
+    - Select a date using the slider
+    - Choose a point from the dropdown
+    - View detailed weather forecasts including:
+      - Wind speed and gusts
+      - Temperature
+      - Precipitation
+      - Wind direction with ideal range boundaries
     """)
 
     st.header("Heading Reference")
@@ -724,6 +742,10 @@ with st.sidebar:
 
     st.header("Preset Points")
     st.markdown("""
-    - **Zoutelande**: Southwest coast (180°-270°)
-    - **Wijk aan Zee**: Northwest coast (0°-90°)
+    - **Zoutelande**: Southwest coast (215°)
+    - **Wijk aan Zee**: Northwest coast (284°)
+    - **Castricum aan Zee**: Northwest coast (279°)
+    - **Langevelderslag**: Northwest coast (295°)
+    - **Renesse (East)**: Southwest coast (13°)
+    - **Renesse (West)**: Southwest coast (340°)
     """)
