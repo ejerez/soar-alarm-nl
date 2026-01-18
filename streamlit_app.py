@@ -10,6 +10,7 @@ import requests_cache
 from retry_requests import retry
 import plotly.graph_objects as go
 import plotly.express as px
+from scipy.spatial.transform import Rotation as R
 
 # Set page config
 st.set_page_config(
@@ -101,19 +102,17 @@ def get_forecast():
     # The order of variables in hourly or daily is important to assign them correctly below
     url = "https://api.open-meteo.com/v1/forecast"
 
+    url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": [point["lat"] for point in st.session_state.points],
         "longitude": [point["lon"] for point in st.session_state.points],
         "daily": ["sunrise", "sunset"],
-        "hourly": ["temperature_2m", "precipitation", "cloud_cover", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "visibility"],
+        "hourly": ["temperature_2m", "visibility", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "precipitation"],
         "models": "knmi_seamless",
         "timezone": "Europe/Berlin",
         "past_days": 2,
         "forecast_days": 10,
-        "temporal_resolution": "native",
-        "wind_speed_unit": "ms"
     }
-
     responses = openmeteo.weather_api(url, params=params)
 
         # Process first location. Add a for-loop for multiple locations or weather models
@@ -121,11 +120,11 @@ def get_forecast():
         # Process hourly data. The order of variables needs to be the same as requested.
         hourly = response.Hourly()
         hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
-        hourly_precipitation = hourly.Variables(1).ValuesAsNumpy()
+        hourly_visibility = hourly.Variables(1).ValuesAsNumpy()
         hourly_wind_speed_10m = hourly.Variables(2).ValuesAsNumpy()
         hourly_wind_direction_10m = hourly.Variables(3).ValuesAsNumpy()
         hourly_wind_gusts_10m = hourly.Variables(4).ValuesAsNumpy()
-        hourly_visibility = hourly.Variables(5).ValuesAsNumpy()
+        hourly_precipitation = hourly.Variables(5).ValuesAsNumpy()
 
         hourly_data = {"date": pd.date_range(
             start = pd.to_datetime(hourly.Time(), unit = "s", utc = True),
@@ -135,12 +134,11 @@ def get_forecast():
         )}
 
         hourly_data["temperature"] = hourly_temperature_2m
-        hourly_data["precipitation"] = hourly_precipitation
+        hourly_data["visibility"] = hourly_visibility
         hourly_data["wind_speed"] = hourly_wind_speed_10m
         hourly_data["wind_direction"] = hourly_wind_direction_10m
         hourly_data["wind_gusts"] = hourly_wind_gusts_10m
-        hourly_data["visibility"] = hourly_visibility
-
+        hourly_data["precipitation"] = hourly_precipitation
 
         # Process daily data. The order of variables needs to be the same as requested.
         daily = response.Daily()
@@ -153,7 +151,6 @@ def get_forecast():
             freq = pd.Timedelta(seconds = daily.Interval()),
             inclusive = "left"
         )}
-
         daily_data["sunrise"] = pd.to_datetime(daily_sunrise, unit = "s", utc = True)
         daily_data["sunset"] = pd.to_datetime(daily_sunset, unit = "s", utc = True)
 
@@ -316,7 +313,7 @@ def create_editing_map():
 
 # Create display map (with heading polygons and wind animations)
 def create_display_map(date=datetime.now()):
-    netherlands_center = [52.5, 5.2913]
+    netherlands_center = [52.3, 5.3]
 
     m = folium.Map(
         location=netherlands_center,
@@ -341,13 +338,13 @@ def create_display_map(date=datetime.now()):
     return m
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["Edit Points", "Map Forecast", "Point Forecast"])
+tab1, tab2, tab3 = st.tabs(["Map Forecast", "Point Forecast", "Edit Points"])
 
 if 'forecast' not in st.session_state:
     st.session_state.forecast = get_forecast()
 
 
-with tab1:
+with tab3:
     st.header("Edit Points")
     st.markdown("Add, delete, or modify points. Preset points are shown in black.")
 
@@ -453,7 +450,7 @@ with tab1:
             st.success("Points updated!")
             st.rerun()
 
-with tab2:
+with tab1:
     st.header("Visualization")
     st.markdown("View points with wind conditions. Click on points to see details in the Information tab.")
 
@@ -499,7 +496,7 @@ with tab2:
                 except:
                     pass
 
-with tab3:
+with tab2:
     st.header("Point Forecast")
     st.markdown("View detailed weather forecasts for selected points.")
 
@@ -553,14 +550,41 @@ with tab3:
             y=day_forecast["wind_speed"],
             name="Wind Speed",
             line=dict(color='blue', width=2),
-            fill='tonexty'
+            fill='tonexty',
+            line_shape='spline'
         ))
 
         fig_wind.add_trace(go.Scatter(
             x=day_forecast["time"],
             y=day_forecast["wind_gusts"],
             name="Gust Speed",
-            line=dict(color='red', width=2, dash='dash')
+            line=dict(color='orange', width=2),
+            fill='tonexty',
+            line_shape='spline'
+        ))
+
+        min_speed = []
+
+        for i, wind_direction in enumerate(day_forecast["wind_direction"]):
+
+            v = [0, np.sin(selected_point["steepness"]), np.cos(selected_point["steepness"])]
+            angle = (wind_direction - selected_point["heading"] + 180) % 360 - 180
+            if abs(angle) <= 45:
+                r = R.from_euler('z', angle, degrees=True)
+                v = r.apply(v)
+                intersect = np.cross([-1,0,0], v)
+                print(intersect)
+
+                min_speed.append(st.session_state.min_sink/intersect[2])
+            else:
+                min_speed.append(None)
+
+        fig_wind.add_trace(go.Scatter(
+            x=day_forecast["time"],
+            y=min_speed,
+            name="Minimum Flyable Speed (based on sinkrate)",
+            line=dict(color='black', width=2),
+            line_shape='spline'
         ))
 
         fig_wind.update_layout(
@@ -571,24 +595,28 @@ with tab3:
             height=400
         )
 
-        st.plotly_chart(fig_wind, use_container_width=True)
+        st.plotly_chart(fig_wind, width='stretch')
 
         # 2. Wind Direction Graph with Boundaries
         st.subheader("Wind Direction")
         fig_dir = go.Figure()
 
         lower_bound = selected_point["heading"] - 45
+        lower_ideal = selected_point["heading"] - 22.5
+        upper_ideal = selected_point["heading"] + 22.5
         upper_bound = selected_point["heading"] + 45
 
-        # Add boundaries as horizontal lines
-        fig_dir.add_hline(y=lower_bound, line_dash="dot", line_color="green",
-                         annotation_text=f"Lower Bound ({lower_bound}°)")
-        fig_dir.add_hline(y=upper_bound, line_dash="dot", line_color="green",
-                         annotation_text=f"Upper Bound ({upper_bound}°)")
-
         # Add ideal range fill
-        fig_dir.add_hrect(y0=lower_bound, y1=upper_bound,
-                         fillcolor="rgba(0,255,0,0.1)", opacity=0.2,
+        fig_dir.add_hrect(y0=lower_ideal, y1=upper_ideal,
+                         fillcolor="rgba(153,255,51,0.7)", opacity=0.5,
+                         line_width=0)
+        
+        fig_dir.add_hrect(y0=lower_bound, y1=lower_ideal,
+                         fillcolor="rgba(255,153,51,0.7)", opacity=0.5,
+                         line_width=0)
+        
+        fig_dir.add_hrect(y0=upper_ideal, y1=upper_bound,
+                         fillcolor="rgba(255,153,51,0.7)", opacity=0.5,
                          line_width=0)
 
         # Add wind direction trace
@@ -596,12 +624,13 @@ with tab3:
             x=day_forecast["time"],
             y=day_forecast["wind_direction"],
             name="Wind Direction",
-            line=dict(color='purple', width=2)
+            line=dict(color='black', width=2),
+            line_shape='spline'
         ))
 
         # Add heading line
-        fig_dir.add_hline(y=selected_point["heading"], line_dash="solid", line_color="black",
-                         annotation_text=f"Ideal Heading ({selected_point['heading']}°)")
+        fig_dir.add_hline(y=selected_point["heading"], line_dash="dot", line_color="grey",
+                         annotation_text=f"Ideal ({selected_point['heading']}°)")
 
         fig_dir.update_layout(
             title=f"Wind Direction (Ideal: {selected_point['heading']}° ±45°)",
@@ -611,7 +640,7 @@ with tab3:
             height=400
         )
 
-        st.plotly_chart(fig_dir, use_container_width=True)
+        st.plotly_chart(fig_dir, width='stretch')
 
         # 3. Temperature and Precipitation Graph
         st.subheader("Temperature and Precipitation")
@@ -623,7 +652,8 @@ with tab3:
             y=day_forecast["temperature"],
             name="Temperature",
             line=dict(color='orange', width=2),
-            yaxis="y1"
+            yaxis="y1",
+            line_shape='spline'
         ))
 
         # Precipitation on secondary y-axis
@@ -632,7 +662,7 @@ with tab3:
             y=day_forecast["precipitation"],
             name="Precipitation",
             marker_color='lightblue',
-            yaxis="y2"
+            yaxis="y2",
         ))
 
         fig_temp_precip.update_layout(
@@ -651,7 +681,7 @@ with tab3:
             height=400
         )
 
-        st.plotly_chart(fig_temp_precip, use_container_width=True)
+        st.plotly_chart(fig_temp_precip, width='stretch')
 
         # Additional information
         st.subheader("Forecast Summary")
@@ -695,7 +725,7 @@ with tab3:
             height=400
         )
 
-        st.plotly_chart(fig_dir_dist, use_container_width=True)
+        st.plotly_chart(fig_dir_dist, width='stretch')
 
     else:
         st.warning("No forecast data available for the selected date.")
