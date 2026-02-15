@@ -173,7 +173,7 @@ def get_forecast_therm():
     return forecast
 
 @st.cache_data(show_spinner=False)
-def process_soar_forecast(raw_forecast):
+def process_soar_forecast(_raw_forecast):
     forecast = []
     for date in st.session_state.dates:
         daily = [{
@@ -181,7 +181,7 @@ def process_soar_forecast(raw_forecast):
                         if point_forecast["daily_data"]["date"][i].date() == date),
             "sunset": next(data for i, data in enumerate(point_forecast["daily_data"]["sunset"])
                         if point_forecast["daily_data"]["date"][i].date() == date)
-        } for point_forecast in raw_forecast]
+        } for point_forecast in _raw_forecast]
 
         day_forecast = [{
             "sunrise": daily[point]["sunrise"],
@@ -206,11 +206,12 @@ def process_soar_forecast(raw_forecast):
             "wind_gusts": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_gusts"])
                         if (point_forecast["hourly_data"]["date"][i] >= daily[point]["sunrise"]
                             and point_forecast["hourly_data"]["date"][i] <= daily[point]["sunset"])]
-        } for point, point_forecast in enumerate(raw_forecast)]
+        } for point, point_forecast in enumerate(_raw_forecast)]
         forecast.append(day_forecast)
     return forecast
 
-def process_therm_forecast(raw_forecast):
+@st.cache_data(show_spinner=False)
+def process_therm_forecast(_raw_forecast):
     forecast = []
     for date in st.session_state.dates:
         daily = [{
@@ -218,7 +219,7 @@ def process_therm_forecast(raw_forecast):
                         if point_forecast["daily_data"]["date"][i].date() == date),
             "sunset": next(data for i, data in enumerate(point_forecast["daily_data"]["sunset"])
                         if point_forecast["daily_data"]["date"][i].date() == date)
-        } for point_forecast in raw_forecast]
+        } for point_forecast in _raw_forecast]
 
         day_forecast = [{
             "sunrise": daily[point]["sunrise"],
@@ -258,7 +259,7 @@ def process_therm_forecast(raw_forecast):
             "wind_gusts": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_gusts"])
                         if (point_forecast["hourly_data"]["date"][i] >= daily[point]["sunrise"]
                             and point_forecast["hourly_data"]["date"][i] <= daily[point]["sunset"])]
-        } for point, point_forecast in enumerate(raw_forecast)]
+        } for point, point_forecast in enumerate(_raw_forecast)]
         forecast.append(day_forecast)
     return forecast
 

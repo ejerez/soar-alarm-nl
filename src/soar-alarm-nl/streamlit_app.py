@@ -17,11 +17,12 @@ from gis_map import *
 # Set page config
 st.set_page_config(
     page_title="Soaralarm NL",
-    page_icon="🌬️",
+    page_icon="wind",
     layout="wide"
 )
 
-# Initialize session state
+if 'mode' not in st.session_state:
+    st.session_state.mode = 'soar'
 if 'min_speed' not in st.session_state:
     st.session_state.min_speed = 20
 if 'max_speed' not in st.session_state:
@@ -39,67 +40,84 @@ st.session_state.therm_points = [
         {"lat": 50.398975, "lon": 5.887711, "name": "Coo (West)", "start_heading_range": 270.0, "end_heading_range": 90.0, "max_wind_speed": 30.0, "preset": True}
     ]
 
-if 'selected_point' not in st.session_state:
-    st.session_state.selected_point = 0
+if 'selected_point_idx' not in st.session_state:
+    st.session_state.selected_point_idx = 0
 if 'current_date' not in st.session_state:
     st.session_state.current_date = datetime.now().date()
-if 'forecast' not in st.session_state:
-    st.session_state.forecast = None
-if 'all_day_forecasts' not in st.session_state:
-    st.session_state.all_day_forecasts = {}
-if 'all_display_forecasts' not in st.session_state:
-    st.session_state.all_display_forecasts = {}
+if 'selected_date_idx' not in st.session_state:
+    st.session_state.selected_date_idx = 1
 if 'map_key' not in st.session_state:
     st.session_state.map_key = 0
 
 # Main app
 st.title("Soaralarm NL")
 
-# Initialize forecast data if not already loaded
-if st.session_state.forecast is None:
-    with st.spinner("Loading weather data..."):
-        st.session_state.forecast = get_forecast()
-        # Pre-compute forecasts for all dates
-        st.session_state.dates = list(set([date.date() for date in st.session_state.forecast[0]["daily_data"]["date"]]))
-        st.session_state.dates.sort()
-        for date in st.session_state.dates:
-            st.session_state.all_day_forecasts[date] = calculate_day_forecast(date)
-            st.session_state.all_display_forecasts[date] = calculate_display_forecast(st.session_state.all_day_forecasts[date])
-
 # Date selector at the top
+if 'day_list' not in st.session_state:
+    week_day = datetime.today().weekday()
+    week_days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    st.session_state.day_list = ["Yesterday", "Today", "Tomorrow", week_days_list[week_day+2], week_days_list[week_day+3], week_days_list[week_day+4], week_days_list[week_day+5], week_days_list[week_day+6]]
+
 st.header("Date Selection")
-selected_date = st.select_slider(
+selected_date_idx = st.selectbox(
     "Select Date",
-    options=st.session_state.dates,
-    value=st.session_state.current_date,
-    key="shared_date_slider"
+    options=st.session_state.day_list,
+    index=st.session_state.selected_date_idx,
 )
 
-if selected_date != st.session_state.current_date:
-    st.session_state.current_date = selected_date
+if selected_date_idx != st.session_state.selected_date_idx:
+    st.session_state.selected_date_idx = selected_date_idx
+
+# Initialize forecast data if not already loaded
+if 'forecast' not in st.session_state:
+    st.session_state.forecast = {}
+    with st.spinner("Fetching forecast..."):
+        st.session_state.forecast['soar_kmni'] = process_soar_forecast(get_forecast_soar_kmni())
+        st.session_state.forecast['soar_ecmwf'] = process_soar_forecast(get_forecast_soar_ecmwf())
+        st.session_state.forecast['therm'] = process_therm_forecast(get_forecast_therm())
+
+if 'disp_forecast' not in st.session_state:
+    st.session_state.disp_forecast = {}
+    with st.spinner("Processing forecast..."):
+        st.session_state.disp_forecast['soar_kmni'] = forecast_display_soar(st.session_state.forecast['soar_kmni'])
+        st.session_state.disp_forecast['soar_ecmwf'] = forecast_display_soar(st.session_state.forecast['soar_ecmwf'])
+        st.session_state.disp_forecast['therm'] = forecast_display_therm(st.session_state.forecast['therm'])
 
 # Create tabs
 tab1, tab2, tab3 = st.tabs(["Map Forecast", "Point Forecast", "Edit Points"])
 
 with tab1:
     # Create and display map with current date's forecast
-    current_map = create_map_with_forecast(st.session_state.current_date)
-    st_folium(current_map, width=1000, height=600, key=f"map_{st.session_state.current_date}")
+    if st.session_state.mode == 'soar':
+        current_map = create_soar_map_forecast(st.session_state.current_date_idx)
+    else:
+        current_map = create_therm_map_forecast(st.session_state.current_date_idx)
+
+    st_folium(current_map, width=1000, height=600, key=f"map_{st.session_state.current_date_idx}")
 
 with tab2:
     # Point selection
-    point_options = {f"{point['name']} ({point['type']})": i for i, point in enumerate(st.session_state.points)}
+    if st.session_state.mode == 'soar':
+        point_options = [point['name'] for point in st.session_state.soar_points]
+    else:
+        point_options = [point['name'] for point in st.session_state.therm_points]
     selected_point_idx = st.selectbox(
         "Select Point",
-        options=list(point_options.keys()),
+        options=point_options,
         index=st.session_state.selected_point,
         key="point_selector"
     )
-    st.session_state.selected_point = point_options[selected_point_idx]
+
+    if st.session_state.selected_point_idx != selected_point_idx:
+        st.session_state.selected_point_idx = selected_point_idx
 
     # Get forecast data
-    selected_point = st.session_state.points[st.session_state.selected_point]
-    day_forecast = st.session_state.all_day_forecasts[st.session_state.current_date][st.session_state.selected_point]
+    if st.session_state.mode == 'soar':
+        selected_point = st.session_state.soar_points[st.session_state.selected_point_idx]
+        day_forecast = st.session_state.forecast["soar_kmni"][st.session_state.selected_date_idx][st.session_state.selected_point_idx]
+    else:
+        selected_point = st.session_state.therm_points[st.session_state.selected_point_idx]
+        day_forecast = st.session_state.forecast["therm"][st.session_state.selected_date_idx][st.session_state.selected_point_idx]
 
     if day_forecast["time"]:
         # Wind Speed and Gust Speed Graph
@@ -111,7 +129,9 @@ with tab2:
             y=day_forecast["wind_speed"],
             name="Wind Speed",
             line=dict(color='blue', width=4),
-            line_shape='spline'
+            line_shape='spline',
+            fill='tonexty',
+            fillcolor='blue'
         ))
 
         fig_wind.add_trace(go.Scatter(
@@ -119,10 +139,12 @@ with tab2:
             y=day_forecast["wind_gusts"],
             name="Gust Speed",
             line=dict(color='orange', width=4),
-            line_shape='spline'
+            line_shape='spline',
+            fill='tonexty',
+            fillcolor='orange'
         ))
 
-        if selected_point["type"] == "Soaring":
+        if st.session_state_mode == 'soar':
             fig_wind.add_hrect(y0=st.session_state.min_speed, y1=st.session_state.max_speed,
                              fillcolor="rgba(153,255,51,0.7)", opacity=0.5, line_width=0)
         else:  # Thermal
