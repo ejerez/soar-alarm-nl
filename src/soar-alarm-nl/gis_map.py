@@ -50,10 +50,11 @@ def create_soar_map_forecast(date_idx, model='kmni'):
             ).add_to(m)
 
         # Add center marker with different colors for types
-        flyable_hours = wind_pizza[0] + wind_pizza[1] + wind_pizza[-2]
-        if flyable_hours >= 3:
+        if pf['good_hours'] >= 3:
             marker_color = "green"
-        elif 0 < flyable_hours < 3:
+        elif pf['good_hours'] > 0 and pf['good_hours'] + pf['marginal_hours'] >= 3:
+            marker_color = "yellow"
+        elif pf['good_hours'] + pf['marginal_hours'] > 0:
             marker_color = "orange"
         else:
             marker_color = "red"

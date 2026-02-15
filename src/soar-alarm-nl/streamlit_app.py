@@ -21,8 +21,6 @@ st.set_page_config(
     layout="wide"
 )
 
-if 'mode' not in st.session_state:
-    st.session_state.mode = 'soar'
 if 'min_speed' not in st.session_state:
     st.session_state.min_speed = 20
 if 'max_speed' not in st.session_state:
@@ -39,7 +37,6 @@ if 'soar_points' not in st.session_state:
 st.session_state.therm_points = [
         {"lat": 50.398975, "lon": 5.887711, "name": "Coo (West)", "start_heading_range": 270.0, "end_heading_range": 90.0, "max_wind_speed": 30.0, "preset": True}
     ]
-
 if 'selected_point_idx' not in st.session_state:
     st.session_state.selected_point_idx = 0
 if 'current_date' not in st.session_state:
@@ -56,14 +53,30 @@ st.title("Soaralarm NL")
 if 'day_list' not in st.session_state:
     week_day = datetime.today().weekday()
     week_days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    st.session_state.day_list = ["Yesterday", "Today", "Tomorrow", week_days_list[week_day+2], week_days_list[week_day+3], week_days_list[week_day+4], week_days_list[week_day+5], week_days_list[week_day+6]]
+    st.session_state.day_list = ["Yesterday", "Today", "Tomorrow", week_days_list[(week_day+2)%7], week_days_list[(week_day+3)%7], week_days_list[(week_day+4)%7], week_days_list[(week_day+5)%7], week_days_list[(week_day+6)%7]]
+
+if 'mode' not in st.session_state:
+    st.session_state.mode = 'soar'
+
+mode_index = 0 if st.session_state.mode == 'soar' else 1
+
+st.header("Mode")
+selected_mode = st.selectbox(
+    "Select Mode",
+    options=["Soar", "Thermal"],
+    index=mode_index,
+)
+
+st.session_state.mode = 'soar' if selected_mode == 'Soar' else 'thermal'
 
 st.header("Date Selection")
-selected_date_idx = st.selectbox(
+selected_date = st.selectbox(
     "Select Date",
     options=st.session_state.day_list,
     index=st.session_state.selected_date_idx,
 )
+
+selected_date_idx = st.session_state.day_list.index(selected_date)
 
 if selected_date_idx != st.session_state.selected_date_idx:
     st.session_state.selected_date_idx = selected_date_idx
@@ -89,11 +102,56 @@ tab1, tab2, tab3 = st.tabs(["Map Forecast", "Point Forecast", "Edit Points"])
 with tab1:
     # Create and display map with current date's forecast
     if st.session_state.mode == 'soar':
-        current_map = create_soar_map_forecast(st.session_state.current_date_idx)
+        current_map = create_soar_map_forecast(st.session_state.selected_date_idx)
     else:
-        current_map = create_therm_map_forecast(st.session_state.current_date_idx)
+        current_map = create_therm_map_forecast(st.session_state.selected_date_idx)
 
-    st_folium(current_map, width=1000, height=600, key=f"map_{st.session_state.current_date_idx}")
+    st_folium(current_map, width=1000, height=600, key=f"map_{st.session_state.selected_date_idx}")
+
+    # Temperature and Precipitation Graph
+    st.subheader("Flyable Hours Per Day")
+    fig_flyable = go.Figure()
+
+
+    forecast = st.session_state.disp_forecast['soar_kmni']
+    good_per_day = []
+    marginal_per_day = []
+    total_per_day = []
+    for date_forecast in forecast:
+        points = []
+        max_flyable = 0
+        best = []
+        for index, point_forecast in enumerate(date_forecast):
+            good = point_forecast['good_hours']
+            marginal = point_forecast['marginal_hours']
+            flyable = good+marginal
+            if flyable == max_flyable:
+                best.append(index)
+            if flyable > max_flyable:
+                max_flyable = flyable
+                best = [index]
+            points.append([good, marginal])
+        good_per_day.append(points[best[0]][0])
+        marginal_per_day.append(points[best[0]][1])
+        total_per_day.append(points[best[0]][0]+points[best[0]][1])
+
+    fig_flyable.add_trace(go.Bar(
+        x=st.session_state.day_list,
+        y=good_per_day,
+        name="Good hours per day",
+        marker_color='green',
+        yaxis="y",
+    ))
+
+    fig_flyable.add_trace(go.Bar(
+        x=st.session_state.day_list,
+        y=marginal_per_day,
+        name="Marginal hours per day",
+        marker_color='orange',
+        yaxis="y",
+    ))
+
+    st.plotly_chart(fig_flyable, width='stretch')
 
 with tab2:
     # Point selection
@@ -101,12 +159,14 @@ with tab2:
         point_options = [point['name'] for point in st.session_state.soar_points]
     else:
         point_options = [point['name'] for point in st.session_state.therm_points]
-    selected_point_idx = st.selectbox(
+    selected_point = st.selectbox(
         "Select Point",
         options=point_options,
-        index=st.session_state.selected_point,
+        index=st.session_state.selected_point_idx,
         key="point_selector"
     )
+
+    selected_point_idx = point_options.index(selected_point)
 
     if st.session_state.selected_point_idx != selected_point_idx:
         st.session_state.selected_point_idx = selected_point_idx
@@ -129,9 +189,7 @@ with tab2:
             y=day_forecast["wind_speed"],
             name="Wind Speed",
             line=dict(color='blue', width=4),
-            line_shape='spline',
-            fill='tonexty',
-            fillcolor='blue'
+            line_shape='spline'
         ))
 
         fig_wind.add_trace(go.Scatter(
@@ -139,12 +197,10 @@ with tab2:
             y=day_forecast["wind_gusts"],
             name="Gust Speed",
             line=dict(color='orange', width=4),
-            line_shape='spline',
-            fill='tonexty',
-            fillcolor='orange'
+            line_shape='spline'
         ))
 
-        if st.session_state_mode == 'soar':
+        if st.session_state.mode == 'soar':
             fig_wind.add_hrect(y0=st.session_state.min_speed, y1=st.session_state.max_speed,
                              fillcolor="rgba(153,255,51,0.7)", opacity=0.5, line_width=0)
         else:  # Thermal
@@ -165,7 +221,7 @@ with tab2:
         st.subheader("Wind Direction")
         fig_dir = go.Figure()
 
-        if selected_point["type"] == "Soaring":
+        if st.session_state.mode == 'soar':
             lower_bound = selected_point["heading"] - 45
             lower_ideal = selected_point["heading"] - 22.5
             upper_ideal = selected_point["heading"] + 22.5
@@ -194,7 +250,7 @@ with tab2:
             line_shape='spline'
         ))
 
-        if selected_point["type"] == "Soaring":
+        if st.session_state.mode == 'soar':
             fig_dir.add_hline(y=selected_point["heading"], line_dash="dot", line_color="grey",
                             annotation_text=f"Ideal ({selected_point['heading']}°)")
 
@@ -230,7 +286,7 @@ with tab2:
         ))
 
         # Add visibility threshold line
-        visibility_threshold = 0.5 if selected_point["type"] == "Thermal" else 0.1
+        visibility_threshold = 0.1 if st.session_state.mode == 'soar' else 0.5
         fig_temp_precip.add_hline(y=visibility_threshold, line_dash="dot", line_color="red",
                                 annotation_text=f"Min Visibility: {visibility_threshold}")
 

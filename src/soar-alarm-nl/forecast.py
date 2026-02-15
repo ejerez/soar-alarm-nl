@@ -174,8 +174,14 @@ def get_forecast_therm():
 
 @st.cache_data(show_spinner=False)
 def process_soar_forecast(_raw_forecast):
+    dates = list(set([date.date() for date in _raw_forecast[0]["daily_data"]["date"]]))
+    dates.sort()
+
+    if 'date_list' not in st.session_state:
+        st.session_state.date_list = dates
+
     forecast = []
-    for date in st.session_state.dates:
+    for date in dates:
         daily = [{
             "sunrise": next(data for i, data in enumerate(point_forecast["daily_data"]["sunrise"])
                         if point_forecast["daily_data"]["date"][i].date() == date),
@@ -212,8 +218,14 @@ def process_soar_forecast(_raw_forecast):
 
 @st.cache_data(show_spinner=False)
 def process_therm_forecast(_raw_forecast):
+    dates = list(set([date.date() for date in _raw_forecast[0]["daily_data"]["date"]]))
+    dates.sort()
+
+    if 'date_list' not in st.session_state:
+        st.session_state.date_list = dates
+
     forecast = []
-    for date in st.session_state.dates:
+    for date in dates:
         daily = [{
             "sunrise": next(data for i, data in enumerate(point_forecast["daily_data"]["sunrise"])
                         if point_forecast["daily_data"]["date"][i].date() == date),
@@ -279,7 +291,9 @@ def forecast_display_soar(forecast):
                         wind_pizza[int(np.floor(rel_head/22.5))] += 1
             wind_pizza[0] = wind_pizza[0] + wind_pizza[-1]
             wind_pizza[-1] = wind_pizza[0]
-            day_forecast.append({"id": point_forecast["id"], "wind_pizza": wind_pizza})
+            good_hours = wind_pizza[0]
+            marginal_hours = wind_pizza[1] + wind_pizza[-2]
+            day_forecast.append({"wind_pizza": wind_pizza, "good_hours": good_hours, "marginal_hours": marginal_hours})
         disp_forecast.append(day_forecast)
     return disp_forecast
 
@@ -317,6 +331,6 @@ def forecast_display_therm(forecast):
                         if env_lapse_rate >= 7 and irradiation >= 200:
                             thermal_hours += 1
                         
-            day_forecast.append({"id": point_forecast["id"], "flyable_hours": flyable_hours, "thermal_hours": thermal_hours})
+            day_forecast.append({"flyable_hours": flyable_hours, "thermal_hours": thermal_hours})
         disp_forecast.append(day_forecast)
     return disp_forecast
