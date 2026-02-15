@@ -117,40 +117,53 @@ with tab1:
     good_per_day = []
     marginal_per_day = []
     total_per_day = []
+    best_per_day = []
     for date_forecast in forecast:
         points = []
         max_flyable = 0
-        best = []
+        max_good = 0
+        best = 0
         for index, point_forecast in enumerate(date_forecast):
             good = point_forecast['good_hours']
             marginal = point_forecast['marginal_hours']
             flyable = good+marginal
-            if flyable == max_flyable:
-                best.append(index)
+            if flyable == max_flyable and good > max_good:
+                max_good = good
+                best = index
             if flyable > max_flyable:
                 max_flyable = flyable
-                best = [index]
+                max_good = good
+                best = index
             points.append([good, marginal])
-        good_per_day.append(points[best[0]][0])
-        marginal_per_day.append(points[best[0]][1])
-        total_per_day.append(points[best[0]][0]+points[best[0]][1])
+        good_per_day.append(points[best][0])
+        marginal_per_day.append(points[best][1])
+        total_per_day.append(points[best][0]+points[best][1])
+        best_per_day.append(best)
 
-    fig_flyable.add_trace(go.Bar(
-        x=st.session_state.day_list,
-        y=good_per_day,
-        name="Good hours per day",
-        marker_color='green',
-        yaxis="y",
-    ))
+    if st.session_state.mode == 'soar':
+        best_point_list = [st.session_state.soar_points[idx]['name'] for idx in best_per_day]
+    else:
+        best_point_list = [st.session_state.therm_points[idx]['name'] for idx in best_per_day]
 
     fig_flyable.add_trace(go.Bar(
         x=st.session_state.day_list,
         y=marginal_per_day,
+        text=best_point_list,
         name="Marginal hours per day",
         marker_color='orange',
         yaxis="y",
     ))
 
+    fig_flyable.add_trace(go.Bar(
+        x=st.session_state.day_list,
+        y=good_per_day,
+        text=best_point_list,
+        name="Good hours per day",
+        marker_color='green',
+        yaxis="y",
+    ))
+
+    fig_flyable.update_layout(barmode='stack')
     st.plotly_chart(fig_flyable, width='stretch')
 
 with tab2:
@@ -320,17 +333,15 @@ with tab3:
         drawn_feature = output["last_active_drawing"]
         if drawn_feature["geometry"]["type"] == "Point":
             lon, lat = drawn_feature["geometry"]["coordinates"]
-            new_id = max([p['id'] for p in st.session_state.points]) + 1 if st.session_state.points else 1
 
-            with st.form(key=f"point_{new_id}_form"):
-                st.subheader(f"Configure Point {new_id}")
+            with st.form(key=f"new_point"):
+                st.subheader(f"Create Point")
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    point_type = st.selectbox("Point Type", ["Soaring", "Thermal"], index=0)
                     name = st.text_input("Name of location")
 
-                if point_type == "Soaring":
+                if st.session_state.mode == "soar":
                     with col2:
                         heading = st.number_input("Best wind heading in degrees", min_value=0, max_value=360, value=0, step=1)
                         steepness = st.number_input("Steepness of the slope in degrees", min_value=0, max_value=90, value=0, step=1)
@@ -345,15 +356,13 @@ with tab3:
 
                 if st.form_submit_button("Save Point"):
                     new_point = {
-                        "id": new_id,
                         "lat": lat,
                         "lon": lon,
                         "name": name,
-                        "type": point_type,
                         "preset": False
                     }
 
-                    if point_type == "Soaring":
+                    if st.session_state.mode == "soar":
                         new_point.update({
                             "heading": float(heading),
                             "steepness": float(steepness)
@@ -365,8 +374,11 @@ with tab3:
                             "max_wind_speed": float(max_wind_speed)
                         })
 
-                    st.session_state.points.append(new_point)
-                    st.success(f"{name} ({point_type}) saved!")
+                    if st.session_state.mode == "soar":
+                        st.session_state.soar_points.append(new_point)
+                    else:
+                        st.session_state.therm_points.append(new_point)
+                    st.success(f"{name} saved!")
                     # Clear cached forecasts since points changed
                     st.session_state.forecast = None
                     st.session_state.all_day_forecasts = {}
@@ -374,8 +386,8 @@ with tab3:
                     st.rerun()
 
     st.subheader("Manage Points")
-    if st.session_state.points:
-        points_df = pd.DataFrame(st.session_state.points)
+    if st.session_state.mode == "soar":
+        points_df = pd.DataFrame(st.session_state.soar_points)
         points_df['Delete'] = False
         points_df.loc[points_df['preset'] == True, 'Delete'] = None
 
@@ -390,13 +402,12 @@ with tab3:
         }
 
         # Add type-specific columns
-        if any(p["type"] == "Soaring" for p in st.session_state.points):
+        if st.session_state.mode == "soar":
             column_config.update({
                 "heading": st.column_config.NumberColumn("Heading (°)"),
                 "steepness": st.column_config.NumberColumn("Steepness")
             })
-
-        if any(p["type"] == "Thermal" for p in st.session_state.points):
+        else:
             column_config.update({
                 "start_heading_range": st.column_config.NumberColumn("Start Heading (°)"),
                 "end_heading_range": st.column_config.NumberColumn("End Heading (°)"),
@@ -414,7 +425,10 @@ with tab3:
         if edited_df['Delete'].any():
             to_delete = edited_df[(edited_df['Delete'] == True) & (edited_df['preset'] == False)]['id'].tolist()
             if to_delete:
-                st.session_state.points = [p for p in st.session_state.points if p['id'] not in to_delete]
+                if st.session_state.mode == "soar":
+                    st.session_state.soar_points = [p for p in st.session_state.soar_points if p['id'] not in to_delete]
+                else:
+                    st.session_state.therm_points = [p for p in st.session_state.therm_points if p['id'] not in to_delete]
                 st.success(f"Deleted {len(to_delete)} point(s)")
                 # Clear cached forecasts since points changed
                 st.session_state.forecast = None
@@ -424,13 +438,16 @@ with tab3:
 
         # Handle edits for type-specific columns
         editable_columns = ['name', 'lat', 'lon']
-        if any(p["type"] == "Soaring" for p in st.session_state.points):
+        if st.session_state.mode == "soar":
             editable_columns.extend(['heading', 'steepness'])
-        if any(p["type"] == "Thermal" for p in st.session_state.points):
+        else:
             editable_columns.extend(['start_heading_range', 'end_heading_range', 'max_wind_speed'])
 
         if not edited_df[editable_columns].equals(points_df[editable_columns]):
-            st.session_state.points = edited_df.drop('Delete', axis=1).to_dict('records')
+            if st.session_state.mode == "soar":
+                st.session_state.soar_points = edited_df.drop('Delete', axis=1).to_dict('records')
+            else:
+                st.session_state.therm_points = edited_df.drop('Delete', axis=1).to_dict('records')
             st.success("Points updated!")
             # Clear cached forecasts since points changed
             st.session_state.forecast = None

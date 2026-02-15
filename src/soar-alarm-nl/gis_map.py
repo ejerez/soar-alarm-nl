@@ -83,9 +83,16 @@ def create_therm_map_forecast(date_index):
 
     display_forecast = st.session_state.disp_forecast["therm"][date_index]
     for point_idx, pf in enumerate(display_forecast):
-
+        point = st.session_state.soar_points[point_idx]
+        lat, lon = point['lat'], point['lon']
         # Add center marker with different colors for types
-        marker_color = "blue" if point["type"] == "Thermal" else "black"
+        if pf['thermal_hours'] > 2:
+            marker_color = "green"
+        elif pf['flyable_hours'] > 2:
+            marker_color = "orange"
+        else:
+            marker_color = "red"
+        
         folium.CircleMarker(
             location=[lat, lon],
             radius=5,
