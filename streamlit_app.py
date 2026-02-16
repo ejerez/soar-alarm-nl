@@ -21,6 +21,8 @@ st.set_page_config(
     layout="wide"
 )
 
+st.session_state.time = datetime.now()
+
 if 'min_speed' not in st.session_state:
     st.session_state.min_speed = 20
 if 'max_speed' not in st.session_state:
@@ -39,18 +41,27 @@ st.session_state.therm_points = [
     ]
 if 'selected_point_idx' not in st.session_state:
     st.session_state.selected_point_idx = 0
-if 'current_date' not in st.session_state:
-    st.session_state.current_date = datetime.now().date()
+if 'last_update' not in st.session_state:
+    st.session_state.last_update = st.session_state.time    
 if 'selected_date_idx' not in st.session_state:
     st.session_state.selected_date_idx = 1
 if 'map_key' not in st.session_state:
     st.session_state.map_key = 0
 
+since_update = st.session_state.time - st.session_state.last_update
+update_forecast = False
+if since_update.hour >= 1:
+    update_forecast = True
+    st.session_state.last_update = st.session_state.time
+
+if 'current_date' not in st.session_state or update_forecast:
+    st.session_state.current_date = datetime.now().date()
+
 # Main app
 st.title("Soaralarm NL")
 
 # Date selector at the top
-if 'day_list' not in st.session_state:
+if 'day_list' not in st.session_state or update_forecast:
     week_day = datetime.today().weekday()
     week_days_list = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     st.session_state.day_list = ["Yesterday", "Today", "Tomorrow", week_days_list[(week_day+2)%7], week_days_list[(week_day+3)%7], week_days_list[(week_day+4)%7], week_days_list[(week_day+5)%7], week_days_list[(week_day+6)%7]]
@@ -82,14 +93,14 @@ if selected_date_idx != st.session_state.selected_date_idx:
     st.session_state.selected_date_idx = selected_date_idx
 
 # Initialize forecast data if not already loaded
-if 'forecast' not in st.session_state:
+if 'forecast' not in st.session_state or update_forecast:
     st.session_state.forecast = {}
     with st.spinner("Fetching forecast..."):
         st.session_state.forecast['soar_kmni'] = process_soar_forecast(get_forecast_soar_kmni())
         st.session_state.forecast['soar_ecmwf'] = process_soar_forecast(get_forecast_soar_ecmwf())
         st.session_state.forecast['therm'] = process_therm_forecast(get_forecast_therm())
 
-if 'disp_forecast' not in st.session_state:
+if 'disp_forecast' not in st.session_state or update_forecast:
     st.session_state.disp_forecast = {}
     with st.spinner("Processing forecast..."):
         st.session_state.disp_forecast['soar_kmni'] = forecast_display_soar(st.session_state.forecast['soar_kmni'])
@@ -163,8 +174,8 @@ with tab1:
         yaxis="y",
     ))
 
-    fig_flyable.update_layout(barmode='stack')
-    st.plotly_chart(fig_flyable, width='stretch')
+    fig_flyable.update_layout(barmode='stack', legend=dict(orientation="h"))
+    st.plotly_chart(fig_flyable, width='stretch', on_select='ignore')
 
 with tab2:
     # Point selection
@@ -225,10 +236,11 @@ with tab2:
             xaxis_title="Time",
             yaxis_title="Speed (km/h)",
             hovermode="x unified",
-            height=400
+            height=400,
+            legend=dict(orientation="h")
         )
 
-        st.plotly_chart(fig_wind, width='stretch')
+        st.plotly_chart(fig_wind, width='stretch', on_select='ignore')
 
         # Wind Direction Graph
         st.subheader("Wind Direction")
@@ -272,10 +284,11 @@ with tab2:
             xaxis_title="Time",
             yaxis_title="Direction (°)",
             hovermode="x unified",
-            height=400
+            height=400,
+            legend=dict(orientation="h")
         )
 
-        st.plotly_chart(fig_dir, width='stretch')
+        st.plotly_chart(fig_dir, width='stretch', on_select='ignore')
 
         # Temperature and Precipitation Graph
         st.subheader("Temperature and Precipitation")
@@ -309,10 +322,11 @@ with tab2:
             yaxis=dict(title="Temperature (°C)", side="left"),
             yaxis2=dict(title="Precipitation (mm)", overlaying="y", side="right"),
             hovermode="x unified",
-            height=400
+            height=400,
+            legend=dict(orientation="h")
         )
 
-        st.plotly_chart(fig_temp_precip, width='stretch')
+        st.plotly_chart(fig_temp_precip, width='stretch', on_select='ignore')
 
         # Summary metrics
         st.subheader("General Forecast Data")
