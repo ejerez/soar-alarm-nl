@@ -50,7 +50,7 @@ if 'map_key' not in st.session_state:
 
 since_update = st.session_state.time - st.session_state.last_update
 update_forecast = False
-if since_update.hour >= 1:
+if since_update.total_seconds() >= 3600:
     update_forecast = True
     st.session_state.last_update = st.session_state.time
 
