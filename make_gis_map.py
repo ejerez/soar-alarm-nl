@@ -14,8 +14,10 @@ from scipy.spatial.transform import Rotation as R
 def create_soar_map_forecast(date_idx, model='kmni'):
     """Create a complete map with forecast data for the given date"""
     m = folium.Map(
-        location=[52.3, 5.3],
+        location=[52.038516, 4.388762],
         zoom_start=8,
+        width = "100%",
+        height = "60%",
         tiles="OpenStreetMap",
         attr="OpenStreetMap"
     )

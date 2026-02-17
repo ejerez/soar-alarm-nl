@@ -76,18 +76,6 @@ if 'day_list' not in st.session_state or update_forecast:
 if 'mode' not in st.session_state:
     st.session_state.mode = 'soar'
 
-#st.header("Date Selection")
-selected_date = st.selectbox(
-    "Select Date",
-    options=st.session_state.day_list,
-    index=st.session_state.selected_date_idx,
-)
-
-selected_date_idx = st.session_state.day_list.index(selected_date)
-
-if selected_date_idx != st.session_state.selected_date_idx:
-    st.session_state.selected_date_idx = selected_date_idx
-
 # Initialize forecast data if not already loaded
 if 'forecast' not in st.session_state or update_forecast:
     st.session_state.forecast = {}
@@ -112,6 +100,18 @@ tab = st.segmented_control(
     selection_mode="single",
     default=tabs[0]
 )
+
+#st.header("Date Selection")
+selected_date = st.selectbox(
+    "Select Date",
+    options=st.session_state.day_list,
+    index=st.session_state.selected_date_idx,
+)
+
+selected_date_idx = st.session_state.day_list.index(selected_date)
+
+if selected_date_idx != st.session_state.selected_date_idx:
+    st.session_state.selected_date_idx = selected_date_idx
 
 if tab == tabs[0]:
     disp_map_forecast(st.session_state)

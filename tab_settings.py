@@ -2,7 +2,7 @@ import streamlit as st
 
 def disp_settings(session_state):
     model = st.selectbox(
-            "Select Model for Soar Forecast",
+            "Select Model for Soar Forecast (ECMWF tends to choose points over land due to low resolution)",
             options=["KNMI", "ECMWF"],
             index=0 if session_state.model == 'KNMI' else 1
             )
