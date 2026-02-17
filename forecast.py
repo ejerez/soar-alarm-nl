@@ -5,9 +5,7 @@ import pandas as pd
 import requests_cache
 from retry_requests import retry
 
-# Setup the Open-Meteo API client with cache
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_forecast_soar_kmni():
+def get_forecast_soar(model = "knmi_seamless"):
     forecast = []
     url = "https://api.open-meteo.com/v1/forecast"
 
@@ -16,10 +14,10 @@ def get_forecast_soar_kmni():
         "longitude": [point["lon"] for point in st.session_state.soar_points],
         "daily": ["sunrise", "sunset"],
         "hourly": ["temperature_2m", "visibility", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "precipitation"],
-        "models": "knmi_seamless",
+        "models": model,
         "timezone": "Europe/Berlin",
         "past_days": 1,
-        "forecast_days": 7,
+        "forecast_days": 6,
     }
 
     cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
@@ -60,60 +58,6 @@ def get_forecast_soar_kmni():
         forecast.append({"id": id, "daily_data": daily_data, "hourly_data": hourly_data})
     return forecast
 
-def get_forecast_soar_ecmwf():
-    forecast = []
-    url = "https://api.open-meteo.com/v1/forecast"
-
-    params = {
-        "latitude": [point["lat"] for point in st.session_state.soar_points],
-        "longitude": [point["lon"] for point in st.session_state.soar_points],
-        "daily": ["sunrise", "sunset"],
-        "hourly": ["temperature_2m", "visibility", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "precipitation"],
-        "models": "ecmwf_ifs",
-        "timezone": "Europe/Berlin",
-        "past_days": 1,
-        "forecast_days": 7,
-    }
-
-    cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
-    retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
-    openmeteo = openmeteo_requests.Client(session=retry_session)
-
-    responses = openmeteo.weather_api(url, params=params)
-
-    for id, response in enumerate(responses):
-        hourly = response.Hourly()
-        hourly_data = {
-            "date": pd.date_range(
-                start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
-                end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
-                freq=pd.Timedelta(seconds=hourly.Interval()),
-                inclusive="left"
-            ),
-            "temperature": hourly.Variables(0).ValuesAsNumpy(),
-            "visibility": hourly.Variables(1).ValuesAsNumpy(),
-            "wind_speed": hourly.Variables(2).ValuesAsNumpy(),
-            "wind_direction": hourly.Variables(3).ValuesAsNumpy(),
-            "wind_gusts": hourly.Variables(4).ValuesAsNumpy(),
-            "precipitation": hourly.Variables(5).ValuesAsNumpy()
-        }
-
-        daily = response.Daily()
-        daily_data = {
-            "date": pd.date_range(
-                start=pd.to_datetime(daily.Time(), unit="s", utc=True),
-                end=pd.to_datetime(daily.TimeEnd(), unit="s", utc=True),
-                freq=pd.Timedelta(seconds=daily.Interval()),
-                inclusive="left"
-            ),
-            "sunrise": pd.to_datetime(daily.Variables(0).ValuesInt64AsNumpy(), unit="s", utc=True),
-            "sunset": pd.to_datetime(daily.Variables(1).ValuesInt64AsNumpy(), unit="s", utc=True)
-        }
-
-        forecast.append({"id": id, "daily_data": daily_data, "hourly_data": hourly_data})
-    return forecast
-
-@st.cache_data(ttl=3600, show_spinner=False)
 def get_forecast_therm():
     forecast = []
     url = "https://api.open-meteo.com/v1/forecast"
@@ -172,7 +116,6 @@ def get_forecast_therm():
         forecast.append({"id": id, "daily_data": daily_data, "hourly_data": hourly_data})
     return forecast
 
-@st.cache_data(show_spinner=False)
 def process_soar_forecast(_raw_forecast):
     dates = list(set([date.date() for date in _raw_forecast[0]["daily_data"]["date"]]))
     dates.sort()
@@ -216,7 +159,6 @@ def process_soar_forecast(_raw_forecast):
         forecast.append(day_forecast)
     return forecast
 
-@st.cache_data(show_spinner=False)
 def process_therm_forecast(_raw_forecast):
     dates = list(set([date.date() for date in _raw_forecast[0]["daily_data"]["date"]]))
     dates.sort()
@@ -275,7 +217,6 @@ def process_therm_forecast(_raw_forecast):
         forecast.append(day_forecast)
     return forecast
 
-@st.cache_data(show_spinner=False)
 def forecast_display_soar(forecast):
     disp_forecast = []
     for day in forecast:
@@ -297,7 +238,6 @@ def forecast_display_soar(forecast):
         disp_forecast.append(day_forecast)
     return disp_forecast
 
-@st.cache_data(show_spinner=False)
 def forecast_display_therm(forecast):
     disp_forecast = []
     for day in forecast:

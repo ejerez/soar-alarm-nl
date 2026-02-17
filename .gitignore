@@ -1,5 +1,9 @@
 .streamlit/secrets.toml
 
+.cache.sqlite
+.devcontainer/
+session_state.pkl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
