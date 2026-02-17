@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
 
-from forecast import *
+from process_forecast import *
 
 def disp_point_forecast(session_state):
 
@@ -24,7 +24,6 @@ def disp_point_forecast(session_state):
         session_state.selected_point_idx = selected_point_idx
 
     model = "soar_kmni" if session_state.model == "KNMI" else "soar_ecmwf"
-    print(model)
 
     # Get forecast data
     if session_state.mode == 'soar':

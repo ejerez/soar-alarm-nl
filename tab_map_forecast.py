@@ -2,8 +2,8 @@ import streamlit as st
 from streamlit_folium import st_folium
 import plotly.graph_objects as go
 
-from forecast import *
-from gis_map import *
+from process_forecast import *
+from make_gis_map import *
 
 def disp_map_forecast(session_state):
     # Create and display map with current date's forecast

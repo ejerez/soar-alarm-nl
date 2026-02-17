@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit_folium import st_folium
 
-from gis_map import *
+from make_gis_map import *
 
 def disp_edit_points(session_state):
 
