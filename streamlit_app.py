@@ -1,8 +1,8 @@
 import streamlit as st
 from time import sleep
 
-from forecast import *
-from gis_map import *
+from process_forecast import *
+from make_gis_map import *
 from tab_map_forecast import disp_map_forecast
 from tab_edit_points import disp_edit_points
 from tab_point_forecast import disp_point_forecast
