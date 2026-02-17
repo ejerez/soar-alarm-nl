@@ -5,8 +5,9 @@ folium
 numpy
 datetime
 openmeteo_requests
-pandas
 requests_cache
 retry_requests
 plotly
 scipy
+knmy
+pickle

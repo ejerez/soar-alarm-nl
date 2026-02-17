@@ -1,8 +1,8 @@
-# :earth_americas: GDP dashboard template
+# :wind: Soaralarm NL
 
-A simple Streamlit app showing the GDP of different countries in the world.
+Integrated forecasting applet for soaring at the Dutch coast.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gdp-dashboard-template.streamlit.app/)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://soaralarmnl.streamlit.app/)
 
 ### How to run it on your own machine
 
