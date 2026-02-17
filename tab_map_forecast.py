@@ -12,7 +12,7 @@ def disp_map_forecast(session_state):
     else:
         current_map = create_therm_map_forecast(session_state.selected_date_idx)
 
-    st_folium(current_map, width=1000, height=600, key=f"map_{session_state.selected_date_idx}")
+    st_folium(current_map, width=500, height=450, key=f"map_{session_state.selected_date_idx}")
 
     # Temperature and Precipitation Graph
     st.subheader("Flyable Hours Per Day")

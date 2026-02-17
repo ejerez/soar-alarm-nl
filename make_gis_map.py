@@ -16,8 +16,6 @@ def create_soar_map_forecast(date_idx, model='kmni'):
     m = folium.Map(
         location=[52.038516, 4.388762],
         zoom_start=8,
-        width = "100%",
-        height = "60%",
         tiles="OpenStreetMap",
         attr="OpenStreetMap"
     )
