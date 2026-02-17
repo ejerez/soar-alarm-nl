@@ -104,7 +104,7 @@ if 'disp_forecast' not in st.session_state or update_forecast:
         st.session_state.disp_forecast['therm'] = forecast_display_therm(st.session_state.forecast['therm'])
 
 # Create tabs
-tabs=["Map Forecast", "Point Forecast", "Edit Points", "Settings"]
+tabs=["Map Forecast", "Point Forecast", "Edit Points (not working yet)", "Settings"]
 
 tab = st.segmented_control(
     'Tabs',

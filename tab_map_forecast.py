@@ -59,7 +59,7 @@ def disp_map_forecast(session_state):
         x=session_state.day_list,
         y=marginal_per_day,
         text=best_point_list,
-        name="Marginal hours per day",
+        name="Marginal",
         marker_color='orange',
         yaxis="y",
     ))
@@ -68,10 +68,15 @@ def disp_map_forecast(session_state):
         x=session_state.day_list,
         y=good_per_day,
         text=best_point_list,
-        name="Good hours per day",
+        name="Good",
         marker_color='green',
         yaxis="y",
     ))
 
-    fig_flyable.update_layout(barmode='stack', legend=dict(orientation="h"))
+    fig_flyable.update_layout(
+        barmode='stack', 
+        legend=dict(orientation="h"),
+        xaxis=dict(title="Day", fixedrange=True),
+        yaxis=dict(title="Hours", side="left", fixedrange=True)
+        )
     st.plotly_chart(fig_flyable, width='stretch', on_select='ignore')

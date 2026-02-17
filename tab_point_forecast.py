@@ -86,9 +86,9 @@ def disp_point_forecast(session_state):
 
         fig_wind.update_layout(
             title="Wind Speed and Gusts",
-            xaxis_title="Time",
-            yaxis=dict(title="Speed (km/h)", side="left"),
-            yaxis2=dict(title="Precipitation (mm)", overlaying="y", side="right"),
+            xaxis=dict(title="Time", fixedrange=True),
+            yaxis=dict(title="Speed (km/h)", side="left", fixedrange=True),
+            yaxis2=dict(title="Precipitation (mm)", overlaying="y", side="right", fixedrange=True),
             hovermode="x unified",
             height=400,
             legend=dict(orientation="h")
@@ -136,8 +136,8 @@ def disp_point_forecast(session_state):
 
         fig_dir.update_layout(
             title=f"Wind Direction (Acceptable Range)",
-            xaxis_title="Time",
-            yaxis_title="Direction (°)",
+            xaxis=dict(title="Time", fixedrange=True),
+            yaxis=dict(title="Direction (°)", fixedrange=True),
             hovermode="x unified",
             height=400,
             legend=dict(orientation="h")
@@ -175,9 +175,9 @@ def disp_point_forecast(session_state):
 
         fig_temp_precip.update_layout(
             title="Temperature, Precipitation and Visibility",
-            xaxis_title="Time",
-            yaxis=dict(title="Temperature (°C)", side="left"),
-            yaxis2=dict(title="Precipitation (mm)", overlaying="y", side="right"),
+            xaxis=dict(title="Time", fixedrange=True),
+            yaxis=dict(title="Temperature (°C)", side="left", fixedrange=True),
+            yaxis2=dict(title="Precipitation (mm)", overlaying="y", side="right", fixedrange=True),
             hovermode="x unified",
             height=400,
             legend=dict(orientation="h")
