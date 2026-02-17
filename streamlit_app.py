@@ -36,12 +36,12 @@ if 'max_speed' not in st.session_state:
     st.session_state.max_speed = 50
 if 'soar_points' not in st.session_state:
     st.session_state.soar_points = [
-        {"lat": 51.508907, "lon": 3.462018, "heading": 215, "steepness": 45, "name": "Zoutelande (Main Dune)", "preset": True},
-        {"lat": 52.502193, "lon": 4.589126, "name": "Wijk aan Zee (North)", "heading": 284, "steepness": 30, "preset": True},
-        {"lat": 52.564313, "lon": 4.608334, "name": "Castricum aan Zee", "heading": 279, "steepness": 30, "preset": True},
-        {"lat": 52.302953, "lon": 4.475574, "name": "Langevelderslag (Noordwijk)", "heading": 295, "steepness": 30, "preset": True},
-        {"lat": 51.740870, "lon": 3.810101, "name": "Renesse (East)", "heading": 13, "steepness": 20, "preset": True},
-        {"lat": 51.741337, "lon": 3.760768, "name": "Renesse (West)", "heading": 340, "steepness": 20, "preset": True}
+        {"lat": 51.508907, "lon": 3.462018, "offshore_lat": 51.486225, "offshore_lon": 3.415339, "heading": 215, "quality": 'excellent', "name": "Zoutelande (Main Dune)", "preset": True},
+        {"lat": 52.502193, "lon": 4.589126, "offshore_lat": 52.503636, "offshore_lon": 4.528322, "name": "Wijk aan Zee (North)", "heading": 284, "quality": 'good', "preset": True},
+        {"lat": 52.564313, "lon": 4.608334, "offshore_lat": 52.564746, "offshore_lon": 4.538524, "name": "Castricum aan Zee", "heading": 279, "quality": 'good', "preset": True},
+        {"lat": 52.302953, "lon": 4.475574, "offshore_lat": 52.319222, "offshore_lon": 4.421669, "name": "Langevelderslag (Noordwijk)", "heading": 295, "quality": 'good', "preset": True},
+        {"lat": 51.740870, "lon": 3.810101, "offshore_lat": 51.778656, "offshore_lon": 3.777647, "name": "Renesse (East)", "heading": 13, "quality": 'poor', "preset": True},
+        {"lat": 51.741337, "lon": 3.760768, "offshore_lat": 51.778656, "offshore_lon": 3.777647, "name": "Renesse (West)", "heading": 340, "quality": 'poor', "preset": True}
     ]
 st.session_state.therm_points = [
         {"lat": 50.398975, "lon": 5.887711, "name": "Coo (West)", "start_heading_range": 270.0, "end_heading_range": 90.0, "max_wind_speed": 30.0, "preset": True}

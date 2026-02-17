@@ -14,11 +14,21 @@ def get_forecast_soar(model = "knmi_seamless"):
         "latitude": [point["lat"] for point in st.session_state.soar_points],
         "longitude": [point["lon"] for point in st.session_state.soar_points],
         "daily": ["sunrise", "sunset"],
-        "hourly": ["temperature_2m", "visibility", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "precipitation"],
+        "hourly": ["temperature_2m", "visibility", "precipitation"],
         "models": model,
         "timezone": "Europe/Berlin",
         "past_days": 1,
-        "forecast_days": 6,
+        "forecast_days": 7,
+    }
+
+    offshore_params = {
+        "latitude": [point["offshore_lat"] for point in st.session_state.soar_points],
+        "longitude": [point["offshore_lon"] for point in st.session_state.soar_points],
+        "hourly": ["wind_speed_10m", "wind_direction_10m", "wind_gusts_10m"],
+        "models": model,
+        "timezone": "Europe/Berlin",
+        "past_days": 1,
+        "forecast_days": 7,
     }
 
     cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
@@ -26,9 +36,12 @@ def get_forecast_soar(model = "knmi_seamless"):
     openmeteo = openmeteo_requests.Client(session=retry_session)
 
     responses = openmeteo.weather_api(url, params=params)
+    offshore_responses = openmeteo.weather_api(url, params=offshore_params)
 
     for id, response in enumerate(responses):
         hourly = response.Hourly()
+        offshore_hourly = offshore_responses[id].Hourly()
+
         hourly_data = {
             "date": pd.date_range(
                 start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
@@ -38,10 +51,10 @@ def get_forecast_soar(model = "knmi_seamless"):
             ),
             "temperature": hourly.Variables(0).ValuesAsNumpy(),
             "visibility": hourly.Variables(1).ValuesAsNumpy(),
-            "wind_speed": hourly.Variables(2).ValuesAsNumpy(),
-            "wind_direction": hourly.Variables(3).ValuesAsNumpy(),
-            "wind_gusts": hourly.Variables(4).ValuesAsNumpy(),
-            "precipitation": hourly.Variables(5).ValuesAsNumpy()
+            "wind_speed": offshore_hourly.Variables(0).ValuesAsNumpy(),
+            "wind_direction": offshore_hourly.Variables(1).ValuesAsNumpy(),
+            "wind_gusts": offshore_hourly.Variables(2).ValuesAsNumpy(),
+            "precipitation": hourly.Variables(2).ValuesAsNumpy()
         }
 
         daily = response.Daily()
