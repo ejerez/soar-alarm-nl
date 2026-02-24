@@ -105,5 +105,7 @@ def disp_map_forecast(session_state):
     color_discrete_map = {'Not flyable': '#000000' if st.session_state.dark_theme else '#FFFFFF', 'Good': '#1FD100', 'Cross': '#D68800'}
     )
 
-    flyable.update_layout(showlegend=False, yaxis={'visible': False, 'showticklabels': True})
+    flyable.update_layout(showlegend=False, 
+                          xaxis=dict(title="Time", fixedrange=True),
+                          yaxis=dict(title="", side="left", fixedrange=True, 'visible': False, 'showticklabels': True)
     st.plotly_chart(flyable, width='stretch', on_select='ignore')
