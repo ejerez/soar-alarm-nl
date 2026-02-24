@@ -35,10 +35,8 @@ if 'user' not in st.session_state:
         if key.startswith("user_"):
             user_data[key.lstrip("user_")] = user_data_cookies[key]
     
-    if 'time_range'in user_data:
+    if len(user_data['time_range']) > 0:
         user_data['time_range'] = (time.fromisoformat(user_data['time_range'][0]), time.fromisoformat(user_data['time_range'][1]))
-
-    if len(user_data) > 0:
         st.session_state.user = DotMap(user_data)
     else:
         st.session_state.user = DotMap()
