@@ -8,7 +8,7 @@ def disp_edit_points(session_state):
     m_edit = create_editing_map()
     output = st_folium(m_edit, width=1000, height=600)
 
-    if output.get("last_active_drawing"):
+    if output.get("last_active_drawings"):
         drawn_feature = output["last_active_drawing"]
         if drawn_feature["geometry"]["type"] == "Point":
             lon, lat = drawn_feature["geometry"]["coordinates"]
@@ -20,7 +20,7 @@ def disp_edit_points(session_state):
                 with col1:
                     name = st.text_input("Name of location")
 
-                if session_state.mode == "soar":
+                if session_state.user.mode == "soar":
                     with col2:
                         heading = st.number_input("Best wind heading in degrees", min_value=0, max_value=360, value=0, step=1)
                         steepness = st.number_input("Steepness of the slope in degrees", min_value=0, max_value=90, value=0, step=1)
@@ -41,7 +41,7 @@ def disp_edit_points(session_state):
                         "preset": False
                     }
 
-                    if session_state.mode == "soar":
+                    if session_state.user.mode == "soar":
                         new_point.update({
                             "heading": float(heading),
                             "steepness": float(steepness)
@@ -53,7 +53,7 @@ def disp_edit_points(session_state):
                             "max_wind_speed": float(max_wind_speed)
                         })
 
-                    if session_state.mode == "soar":
+                    if session_state.user.mode == "soar":
                         session_state.soar_points.append(new_point)
                     else:
                         session_state.therm_points.append(new_point)
@@ -65,7 +65,7 @@ def disp_edit_points(session_state):
                     st.rerun()
 
     st.subheader("Manage Points")
-    if session_state.mode == "soar":
+    if session_state.user.mode == "soar":
         points_df = pd.DataFrame(session_state.soar_points)
         points_df['Delete'] = False
         points_df.loc[points_df['preset'] == True, 'Delete'] = None
@@ -81,7 +81,7 @@ def disp_edit_points(session_state):
         }
 
         # Add type-specific columns
-        if session_state.mode == "soar":
+        if session_state.user.mode == "soar":
             column_config.update({
                 "heading": st.column_config.NumberColumn("Heading (°)"),
                 "steepness": st.column_config.NumberColumn("Steepness")
@@ -104,7 +104,7 @@ def disp_edit_points(session_state):
         if edited_df['Delete'].any():
             to_delete = edited_df[(edited_df['Delete'] == True) & (edited_df['preset'] == False)]['id'].tolist()
             if to_delete:
-                if session_state.mode == "soar":
+                if session_state.user.mode == "soar":
                     session_state.soar_points = [p for p in session_state.soar_points if p['id'] not in to_delete]
                 else:
                     session_state.therm_points = [p for p in session_state.therm_points if p['id'] not in to_delete]
@@ -117,13 +117,13 @@ def disp_edit_points(session_state):
 
         # Handle edits for type-specific columns
         editable_columns = ['name', 'lat', 'lon']
-        if session_state.mode == "soar":
+        if session_state.user.mode == "soar":
             editable_columns.extend(['heading', 'steepness'])
         else:
             editable_columns.extend(['start_heading_range', 'end_heading_range', 'max_wind_speed'])
 
         if not edited_df[editable_columns].equals(points_df[editable_columns]):
-            if session_state.mode == "soar":
+            if session_state.user.mode == "soar":
                 session_state.soar_points = edited_df.drop('Delete', axis=1).to_dict('records')
             else:
                 session_state.therm_points = edited_df.drop('Delete', axis=1).to_dict('records')

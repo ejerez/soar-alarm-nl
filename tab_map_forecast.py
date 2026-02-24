@@ -7,10 +7,12 @@ from make_gis_map import *
 
 def disp_map_forecast(session_state):
     # Create and display map with current date's forecast
-    if session_state.mode == 'soar':
-        current_map = create_soar_map_forecast(session_state.selected_date_idx)
+    model = "soar_kmni" if session_state.user.model == "KNMI" else "soar_ecmwf"
+    
+    if session_state.user.mode == 'soar':
+        current_map = create_soar_map_forecast(session_state.selected_date_idx, model=model)
     else:
-        current_map = create_therm_map_forecast(session_state.selected_date_idx)
+        current_map = create_therm_map_forecast(session_state.selected_date_idx, model=model)
 
     st_folium(current_map, width=500, height=450, key=f"map_{session_state.selected_date_idx}")
 
@@ -18,7 +20,6 @@ def disp_map_forecast(session_state):
     st.subheader("Flyable Hours Per Day")
     fig_flyable = go.Figure()
 
-    model = "soar_kmni" if session_state.model == "KNMI" else "soar_ecmwf"
     forecast = session_state.disp_forecast[model]
     good_per_day = []
     marginal_per_day = []
@@ -32,7 +33,7 @@ def disp_map_forecast(session_state):
         best_flyable = None
         for index, point_forecast in enumerate(date_forecast):
             good = point_forecast['good_hours']
-            marginal = point_forecast['marginal_hours']
+            marginal = point_forecast['cross_hours']
             flyable = good+marginal
             if good > max_good:
                 max_good = good
@@ -50,7 +51,7 @@ def disp_map_forecast(session_state):
         total_per_day.append(points[best][0]+points[best][1])
         best_per_day.append(best)
 
-    if session_state.mode == 'soar':
+    if session_state.user.mode == 'soar':
         best_point_list = [session_state.soar_points[idx]['name'] for idx in best_per_day]
     else:
         best_point_list = [session_state.therm_points[idx]['name'] for idx in best_per_day]
@@ -59,7 +60,7 @@ def disp_map_forecast(session_state):
         x=session_state.day_list,
         y=marginal_per_day,
         text=best_point_list,
-        name="Marginal",
+        name="Crosswind",
         marker_color='orange',
         yaxis="y",
     ))

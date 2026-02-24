@@ -7,31 +7,34 @@ from process_forecast import *
 def disp_point_forecast(session_state):
 
     # Point selection
-    if session_state.mode == 'soar':
+    if session_state.user.mode == 'soar':
         point_options = [point['name'] for point in session_state.soar_points]
     else:
         point_options = [point['name'] for point in session_state.therm_points]
-    selected_point = st.selectbox(
+    
+    select_point = st.selectbox(
         "Select Point",
         options=point_options,
         index=session_state.selected_point_idx,
         key="point_selector"
     )
 
-    selected_point_idx = point_options.index(selected_point)
+    selected_point_idx = point_options.index(select_point)
 
     if session_state.selected_point_idx != selected_point_idx:
         session_state.selected_point_idx = selected_point_idx
 
-    model = "soar_kmni" if session_state.model == "KNMI" else "soar_ecmwf"
+    model = "soar_kmni" if session_state.user.model == "KNMI" else "soar_ecmwf"
 
     # Get forecast data
-    if session_state.mode == 'soar':
+    if session_state.user.mode == 'soar':
         selected_point = session_state.soar_points[session_state.selected_point_idx]
         day_forecast = session_state.forecast[model][session_state.selected_date_idx][session_state.selected_point_idx]
     else:
         selected_point = session_state.therm_points[session_state.selected_point_idx]
         day_forecast = session_state.forecast["therm"][session_state.selected_date_idx][session_state.selected_point_idx]
+
+    button_location = st.link_button(f'How to get to {select_point} (Google Maps)', rf"https://www.google.com/maps/place/{selected_point['lat']}N+{selected_point['lon']}E")
 
     if day_forecast["time"]:
         # Wind Speed and Gust Speed Graph
@@ -68,17 +71,17 @@ def disp_point_forecast(session_state):
             x=day_forecast["time"],
             y=day_forecast["precipitation"],
             name="Precipitation",
-            line=dict(color='lightblue', width=2),
+            line=dict(color='lightblue', width=0),
             line_shape='spline',
             fill='tonexty',
             fillcolor='lightblue',
             mode="lines",
             yaxis="y2",
-            opacity=1
+            opacity=0
         ))
 
-        if session_state.mode == 'soar':
-            fig_wind.add_hrect(y0=session_state.min_speed, y1=session_state.max_speed,
+        if session_state.user.mode == 'soar':
+            fig_wind.add_hrect(y0=selected_point['wind_range'][0], y1=selected_point['wind_range'][1],
                                 fillcolor="rgba(153,255,51,0.7)", opacity=0.5, line_width=0)
         else:  # Thermal
             max_wind = selected_point.get("max_wind_speed", 30)
@@ -100,11 +103,11 @@ def disp_point_forecast(session_state):
         st.subheader("Wind Direction")
         fig_dir = go.Figure()
 
-        if session_state.mode == 'soar':
-            lower_bound = selected_point["heading"] - 45
+        if session_state.user.mode == 'soar':
+            lower_bound = selected_point["heading"] + selected_point["head_range"][0]
             lower_ideal = selected_point["heading"] - 22.5
             upper_ideal = selected_point["heading"] + 22.5
-            upper_bound = selected_point["heading"] + 45
+            upper_bound = selected_point["heading"] + selected_point["head_range"][1]
 
             fig_dir.add_hrect(y0=lower_ideal, y1=upper_ideal, fillcolor="rgba(153,255,51,0.7)", opacity=0.5, line_width=0)
             fig_dir.add_hrect(y0=lower_bound, y1=lower_ideal, fillcolor="rgba(255,153,51,0.7)", opacity=0.5, line_width=0)
@@ -130,7 +133,7 @@ def disp_point_forecast(session_state):
             mode="lines"
         ))
 
-        if session_state.mode == 'soar':
+        if session_state.user.mode == 'soar':
             fig_dir.add_hline(y=selected_point["heading"], line_dash="dot", line_color="grey",
                             annotation_text=f"Ideal ({selected_point['heading']}°)")
 
@@ -169,7 +172,7 @@ def disp_point_forecast(session_state):
         ))
 
         # Add visibility threshold line
-        visibility_threshold = 0.1 if session_state.mode == 'soar' else 0.5
+        visibility_threshold = 0.1 if session_state.user.mode == 'soar' else 0.5
         fig_temp_precip.add_hline(y=visibility_threshold, line_dash="dot", line_color="red",
                                 annotation_text=f"Min Visibility: {visibility_threshold}")
 

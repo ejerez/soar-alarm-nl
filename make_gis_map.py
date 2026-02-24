@@ -11,7 +11,7 @@ from retry_requests import retry
 import plotly.graph_objects as go
 from scipy.spatial.transform import Rotation as R
 
-def create_soar_map_forecast(date_idx, model='kmni'):
+def create_soar_map_forecast(date_idx, model='soar_kmni'):
     """Create a complete map with forecast data for the given date"""
     m = folium.Map(
         location=[52.038516, 4.388762],
@@ -21,24 +21,23 @@ def create_soar_map_forecast(date_idx, model='kmni'):
     )
     MeasureControl().add_to(m)
 
-    display_forecast = st.session_state.disp_forecast[f"soar_{model}"][date_idx]
+    display_forecast = st.session_state.disp_forecast[model][date_idx]
     for point_idx, pf in enumerate(display_forecast):
         point = st.session_state.soar_points[point_idx]
         lat, lon = point['lat'], point['lon']
         wind_pizza = pf["wind_pizza"]
         head = np.deg2rad(point['heading'])
+        rel_headings = [point['head_range'][0], -22.5, 22.5, point['head_range'][1]]
         for i, slice in enumerate(wind_pizza):
-            min_x = lon + 1.63*0.02*np.min([slice, 5]) * np.sin(head+np.deg2rad(22.5)*i)
-            min_y = lat + 0.02*np.min([slice, 5]) * np.cos(head+np.deg2rad(22.5)*i)
-            max_x = lon + 1.63*0.02*np.min([slice, 5]) * np.sin(head+np.deg2rad(22.5)*(i+1))
-            max_y = lat + 0.02*np.min([slice, 5]) * np.cos(head+np.deg2rad(22.5)*(i+1))
+            min_x = lon + 1.63*0.04*np.min([slice, 3]) * np.sin(head+np.deg2rad(rel_headings[i]))
+            min_y = lat + 0.04*np.min([slice, 3]) * np.cos(head+np.deg2rad(rel_headings[i]))
+            max_x = lon + 1.63*0.04*np.min([slice, 3]) * np.sin(head+np.deg2rad(rel_headings[i+1]))
+            max_y = lat + 0.04*np.min([slice, 3]) * np.cos(head+np.deg2rad(rel_headings[i+1]))
 
-            if i == 0 or i == 360/22.5 - 1:
+            if i == 1:
                 color = "green"
-            elif i == 1 or i == 360/22.5 - 2:
-                color = "orange"
             else:
-                color = "red"
+                color = "orange"
 
             folium.Polygon(
                 locations=[[lat, lon], [min_y, min_x], [max_y, max_x]],
@@ -52,9 +51,7 @@ def create_soar_map_forecast(date_idx, model='kmni'):
         # Add center marker with different colors for types
         if pf['good_hours'] >= 3:
             marker_color = "green"
-        elif pf['good_hours'] > 0 and pf['good_hours'] + pf['marginal_hours'] >= 3:
-            marker_color = "yellow"
-        elif pf['good_hours'] + pf['marginal_hours'] > 0:
+        elif pf['good_hours'] + pf['cross_hours'] > 0:
             marker_color = "orange"
         else:
             marker_color = "red"

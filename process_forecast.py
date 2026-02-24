@@ -150,28 +150,28 @@ def process_soar_forecast(_raw_forecast):
             "sunrise": daily[point]["sunrise"],
             "sunset": daily[point]["sunset"],
             "time": [time for time in point_forecast["hourly_data"]["date"]
-                    if (time >= start_window(daily, point) and time <= end_window(daily, point))],
+                    if (time >= start_day(daily, point) and time <= end_day(daily, point))],
             "temperature": [data for i, data in enumerate(point_forecast["hourly_data"]["temperature"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "precipitation": [data for i, data in enumerate(point_forecast["hourly_data"]["precipitation"])
-                            if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                                and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                            if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                                and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "visibility": [data for i, data in enumerate(point_forecast["hourly_data"]["visibility"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "wind_speed": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_speed"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "wind_speed_measured": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_speed"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "wind_direction": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_direction"])
-                            if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                                and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                            if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                                and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "wind_gusts": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_gusts"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))]
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))]
         } for point, point_forecast in enumerate(_raw_forecast)]
         forecast.append(day_forecast)
     return forecast
@@ -196,40 +196,40 @@ def process_therm_forecast(_raw_forecast):
             "sunrise": daily[point]["sunrise"],
             "sunset": daily[point]["sunset"],
             "time": [time for time in point_forecast["hourly_data"]["date"]
-                    if (time >= start_window(daily, point) and time <= end_window(daily, point))],
+                    if (time >= start_day(daily, point) and time <= end_day(daily, point))],
             "temperature": [data for i, data in enumerate(point_forecast["hourly_data"]["temperature"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "temperature_110m": [data for i, data in enumerate(point_forecast["hourly_data"]["temperature_110m"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "temperature_800m": [data for i, data in enumerate(point_forecast["hourly_data"]["temperature_800m"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "temperature_1500m": [data for i, data in enumerate(point_forecast["hourly_data"]["temperature_1500m"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "temperature_3000m": [data for i, data in enumerate(point_forecast["hourly_data"]["temperature_3000m"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "solar_irradiation": [data for i, data in enumerate(point_forecast["hourly_data"]["solar_irradiation"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "precipitation": [data for i, data in enumerate(point_forecast["hourly_data"]["precipitation"])
-                            if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                                and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                            if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                                and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "visibility": [data for i, data in enumerate(point_forecast["hourly_data"]["visibility"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "wind_speed": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_speed"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "wind_direction": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_direction"])
-                            if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                                and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))],
+                            if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                                and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))],
             "wind_gusts": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_gusts"])
-                        if (point_forecast["hourly_data"]["date"][i] >= start_window(daily, point)
-                            and point_forecast["hourly_data"]["date"][i] <= end_window(daily, point))]
+                        if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
+                            and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))]
         } for point, point_forecast in enumerate(_raw_forecast)]
         forecast.append(day_forecast)
     return forecast
@@ -240,18 +240,26 @@ def forecast_display_soar(forecast):
         day_forecast = []
         for i, point_forecast in enumerate(day):
             point = st.session_state.soar_points[i]
-            wind_pizza = np.zeros(int(360/22.5))
+            wind_pizza = np.zeros(3)
 
             for i, time in enumerate(point_forecast["time"]):
                 # Check basic conditions
-                if point_forecast["precipitation"][i] < 0.1 and point_forecast["visibility"][i] > 0.1 and point_forecast["wind_speed"][i] > st.session_state.min_speed:
-                        rel_head = point_forecast["wind_direction"][i] - point["heading"]
-                        wind_pizza[int(np.floor(rel_head/22.5))] += 1
-            wind_pizza[0] = wind_pizza[0] + wind_pizza[-1]
-            wind_pizza[-1] = wind_pizza[0]
-            good_hours = wind_pizza[0]
-            marginal_hours = wind_pizza[1] + wind_pizza[-2]
-            day_forecast.append({"wind_pizza": wind_pizza, "good_hours": good_hours, "marginal_hours": marginal_hours})
+                if start_window(time) < time < end_window(time) \
+                and point_forecast["precipitation"][i] < 0.01 \
+                and point_forecast["visibility"][i] > 0.1 \
+                and point_forecast["wind_speed"][i] > point['wind_range'][0] \
+                and point_forecast["wind_gusts"][i] < point['wind_range'][1]:
+                    rel_head = point_forecast["wind_direction"][i] - point["heading"]
+                    if point['head_range'][0] < rel_head < -22.5:
+                        wind_pizza[0] += 1
+                    elif -22.5 < rel_head < 22.5:
+                        wind_pizza[1] += 1
+                    elif  22.5 < rel_head < point['head_range'][1]:
+                        wind_pizza[2] += 1
+
+            good_hours = wind_pizza[1]
+            cross_hours = wind_pizza[0] + wind_pizza[2]
+            day_forecast.append({"wind_pizza": wind_pizza, "good_hours": good_hours, "cross_hours": cross_hours})
         disp_forecast.append(day_forecast)
     return disp_forecast
 
@@ -265,7 +273,7 @@ def forecast_display_therm(forecast):
                 flyable_hours = 0
                 thermal_hours = 0
                 # Check basic conditions
-                if point_forecast["precipitation"][i] < 0.1 and point_forecast["visibility"][i] > 0.5 and point_forecast["wind_speed"][i] < point.get("max_wind_speed", 30):
+                if point_forecast["precipitation"][i] < 0.01 and point_forecast["visibility"][i] > 0.5 and point_forecast["wind_speed"][i] < point['wind_range'][1]:
                     # Check if wind direction is within acceptable range
                     start_heading = point.get("start_heading_range", 0)
                     end_heading = point.get("end_heading_range", 360)
@@ -292,8 +300,14 @@ def forecast_display_therm(forecast):
         disp_forecast.append(day_forecast)
     return disp_forecast
 
-def start_window(daily, point):
+def start_day(daily, point):
     return daily[point]["sunrise"]+timedelta(hours=-1)
 
-def end_window(daily, point):
+def end_day(daily, point):
     return daily[point]["sunset"]+timedelta(hours=1)
+
+def start_window(time):
+    return time.replace(hour=st.session_state.user.time_range[0].hour, minute=st.session_state.user.time_range[0].minute)
+
+def end_window(time):
+    return time.replace(hour=st.session_state.user.time_range[1].hour, minute=st.session_state.user.time_range[1].minute)
