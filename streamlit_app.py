@@ -25,7 +25,6 @@ st.title("Soaralarm NL")
 cookies = CookieController()
 
 if 'user' not in st.session_state:
-    #with st.spinner(text="Loading data from previous session..."):
     user_data_cookies = {cookie: cookies.get(cookie) for cookie in ["user_model", "user_time_range"]}
     sleep(0.7)
     
@@ -35,7 +34,7 @@ if 'user' not in st.session_state:
         if key.startswith("user_"):
             user_data[key.lstrip("user_")] = user_data_cookies[key]
     
-    if len(user_data['time_range']) > 0:
+    if user_data['time_range'] is not None:
         user_data['time_range'] = (time.fromisoformat(user_data['time_range'][0]), time.fromisoformat(user_data['time_range'][1]))
         st.session_state.user = DotMap(user_data)
     else:
@@ -58,9 +57,9 @@ st.session_state.therm_points = [
 
 if 'user' not in st.session_state:
     st.session_state.user = DotMap()
-if 'model' not in st.session_state.user:
+if 'model' not in st.session_state.user or st.session_state.user.model == None:
     st.session_state.user.model = "KNMI"
-if 'time_range' not in st.session_state.user:
+if 'time_range' not in st.session_state.user or st.session_state.user.time_range == None:
     st.session_state.user.time_range = (time(00, 00), time(23, 59))
 
 if 'selected_point_idx' not in st.session_state:
