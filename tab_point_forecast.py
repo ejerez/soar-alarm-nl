@@ -25,7 +25,7 @@ def disp_point_forecast(session_state):
         "Select Point",
         options=point_options,
         index=session_state.selected_point_idx,
-        key="point_selector"
+        key="select_point"
     )
 
     selected_point_idx = point_options.index(select_point)

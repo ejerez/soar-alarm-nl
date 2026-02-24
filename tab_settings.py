@@ -11,7 +11,8 @@ def disp_settings(session_state):
     model = st.selectbox(
             "Select Model for Soar Forecast (ECMWF may pick points onshore)",
             options=["KNMI", "ECMWF"],
-            index=0 if session_state.user.model == 'KNMI' else 1
+            index=0 if session_state.user.model == 'KNMI' else 1,
+            key="model"
             )
     
     if model != session_state.user.model:
@@ -20,7 +21,8 @@ def disp_settings(session_state):
     mode_index = 0 if st.session_state.user.mode == 'soar' else 1
 
     time_range = st.slider(
-    "Adjust time range (Affects flyable hours graph)", value=session_state.user.time_range
+    "Adjust time range (Affects flyable hours graph)", value=session_state.user.time_range,
+    key="time_range"
     )
     
     if time_range != session_state.user.time_range:
@@ -31,6 +33,7 @@ def disp_settings(session_state):
         "Select Mode (not working yet)",
         options=["Soar", "Thermal"],
         index=mode_index,
+        key="selected_mode"
     )
 
     st.session_state.user.mode = 'soar' if selected_mode == 'Soar' else 'thermal'
