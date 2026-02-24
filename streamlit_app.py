@@ -25,23 +25,23 @@ st.title("Soaralarm NL")
 cookies = CookieController()
 
 if 'user' not in st.session_state:
-    with st.spinner(text="Loading data from previous session..."):
-            user_data_cookies = {cookie: cookies.get(cookie) for cookie in ["user_model", "user_time_range"]}
-            sleep(0.5)
-            
-            user_data = {}
+    #with st.spinner(text="Loading data from previous session..."):
+    user_data_cookies = {cookie: cookies.get(cookie) for cookie in ["user_model", "user_time_range"]}
+    sleep(0.7)
+    
+    user_data = {}
 
-            for key in user_data_cookies:
-                if key.startswith("user_"):
-                    user_data[key.lstrip("user_")] = user_data_cookies[key]
-            
-            if 'time_range'in user_data:
-                user_data['time_range'] = (time.fromisoformat(user_data['time_range'][0]), time.fromisoformat(user_data['time_range'][1]))
+    for key in user_data_cookies:
+        if key.startswith("user_"):
+            user_data[key.lstrip("user_")] = user_data_cookies[key]
+    
+    if 'time_range'in user_data:
+        user_data['time_range'] = (time.fromisoformat(user_data['time_range'][0]), time.fromisoformat(user_data['time_range'][1]))
 
-            if len(user_data) > 0:
-                st.session_state.user = DotMap(user_data)
-            else:
-                st.session_state.user = DotMap()
+    if len(user_data) > 0:
+        st.session_state.user = DotMap(user_data)
+    else:
+        st.session_state.user = DotMap()
 
 st.session_state.time = datetime.now()
 
