@@ -58,7 +58,8 @@ def disp_map_forecast(session_state):
         for gantt in gantt_raw:
             gantt_per_day.append(
                 dict(Wind='Not flyable' if gantt[0]=='no' else 'Good' if gantt[0]=='good' else 'Cross', 
-                     Point=session_state.soar_points[best]['name'], Start=gantt[1][0], Finish=gantt[1][1], Day=session_state.day_list[day])
+                     Description='' if gantt[0]=='no' else f"Good, {session_state.soar_points[best]['name'])}" if gantt[0]=='good' else f"Cross, {session_state.soar_points[best]['name'])}", 
+                     Start=gantt[1][0], Finish=gantt[1][1], Day=session_state.day_list[day])
                 )
 
     if session_state.user.mode == 'soar':
@@ -100,9 +101,9 @@ def disp_map_forecast(session_state):
     x_end="Finish", 
     y="Day",
     color="Wind",
-    text="Point",
+    text="Description",
     color_discrete_map = {'Not flyable': '#000000' if st.session_state.dark_theme else '#FFFFFF', 'Good': '#1FD100', 'Cross': '#D68800'}
     )
 
-    flyable.update_layout(showlegend=False)
+    flyable.update_layout(showlegend=False, yaxis={'visible': False, 'showticklabels': True})
     st.plotly_chart(flyable, width='stretch', on_select='ignore')
