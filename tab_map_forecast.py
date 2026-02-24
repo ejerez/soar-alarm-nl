@@ -79,6 +79,7 @@ def disp_map_forecast(session_state):
     )
 
     flyable.update_layout(showlegend=False)
+    st.plotly_chart(flyable, width='stretch', on_select='ignore')
 
     fig_flyable.add_trace(go.Bar(
         x=session_state.day_list,
@@ -105,5 +106,3 @@ def disp_map_forecast(session_state):
         yaxis=dict(title="Hours", side="left", fixedrange=True)
         )
     st.plotly_chart(fig_flyable, width='stretch', on_select='ignore')
-
-    st.plotly_chart(flyable, width='stretch', on_select='ignore')
