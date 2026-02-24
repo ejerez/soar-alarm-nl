@@ -57,10 +57,13 @@ def disp_map_forecast(session_state):
 
         for gantt in gantt_raw:
             gantt_per_day.append(
-                dict(Wind='Not flyable' if gantt[0]=='no' else 'Good' if gantt[0]=='good' else 'Cross', 
-                     Description='' if gantt[0]=='no' else f"Good, {session_state.soar_points[best]['name'])}" if gantt[0]=='good' else f"Cross, {session_state.soar_points[best]['name'])}", 
-                     Start=gantt[1][0], Finish=gantt[1][1], Day=session_state.day_list[day])
+                dict(
+                    Wind='Not flyable' if gantt[0]=='no' else 'Good' if gantt[0]=='good' else 'Cross', 
+                    Description='' if gantt[0]=='no' else f"Good, {session_state.soar_points[best]['name']}" if gantt[0]=='good' else f"Cross, {session_state.soar_points[best]['name']}", 
+                    Start=gantt[1][0], Finish=gantt[1][1], Day=session_state.day_list[day]
                 )
+            )
+    
 
     if session_state.user.mode == 'soar':
         best_point_list = [session_state.soar_points[idx]['name'] for idx in best_per_day]
