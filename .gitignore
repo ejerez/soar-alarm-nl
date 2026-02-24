@@ -2,8 +2,10 @@
 
 .cache.sqlite
 .devcontainer/
-*.pkl
-*xlsx
+measurements.pkl
+forecast.pkl
+.cache.sqlite
+*.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
