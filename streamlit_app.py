@@ -68,9 +68,9 @@ if 'user' not in st.session_state:
 if 'soar_points' not in st.session_state:
     st.session_state.soar_points = [
         {"lat": 51.492894, "lon": 3.499841, "offshore_lat": 51.486225, "offshore_lon": 3.415339, "name": "Zoutelande (Main Dune)", "station": "cadzand.1", "heading": 222, "head_range": [-55, 45], "wind_range": [18, 50], "preset": True},
-        {"lat": 52.502193, "lon": 4.589126, "offshore_lat": 52.503636, "offshore_lon": 4.528322, "name": "Wijk aan Zee (North)", "station": "ijmuiden.buitenhaven", "heading": 284, "head_range": [-45, 45], "wind_range": [20, 50], "preset": True},
-        {"lat": 52.564313, "lon": 4.608334, "offshore_lat": 52.564746, "offshore_lon": 4.538524, "name": "Castricum aan Zee", "station": "ijmuiden.buitenhaven", "heading": 279, "head_range": [-45, 45], "wind_range": [20, 50], "preset": True},
-        {"lat": 52.302953, "lon": 4.475574, "offshore_lat": 52.319222, "offshore_lon": 4.421669, "name": "Langevelderslag (Noordwijk)", "station": "ijmuiden.buitenhaven", "heading": 295, "head_range": [-45, 45], "wind_range": [20, 50], "preset": True},
+        {"lat": 52.502193, "lon": 4.589126, "offshore_lat": 52.503636, "offshore_lon": 4.528322, "name": "Wijk aan Zee (North)", "station": "ijmuiden.havenhoofd.zuid", "heading": 284, "head_range": [-45, 45], "wind_range": [20, 50], "preset": True},
+        {"lat": 52.564313, "lon": 4.608334, "offshore_lat": 52.564746, "offshore_lon": 4.538524, "name": "Castricum aan Zee", "station": "ijmuiden.havenhoofd.zuid", "heading": 279, "head_range": [-45, 45], "wind_range": [20, 50], "preset": True},
+        {"lat": 52.302953, "lon": 4.475574, "offshore_lat": 52.319222, "offshore_lon": 4.421669, "name": "Langevelderslag (Noordwijk)", "station": "ijmuiden.havenhoofd.zuid", "heading": 295, "head_range": [-45, 45], "wind_range": [20, 50], "preset": True},
         {"lat": 51.866840, "lon": 4.052526, "offshore_lat": 51.885594, "offshore_lon": 3.946932, "name": "Rockanje (South)", "station": "stellendam.haringvlietsluizen.schuif1", "heading": 237, "head_range": [-45, 45], "wind_range": [20, 50], "preset": True},
         {"lat": 51.740870, "lon": 3.810101, "offshore_lat": 51.778656, "offshore_lon": 3.777647, "name": "Renesse (East)", "station": "brouwersdam.brouwershavensegat.2", "heading": 13, "head_range": [-45, 45], "wind_range": [25, 50], "preset": True},
         {"lat": 51.741337, "lon": 3.760768, "offshore_lat": 51.778656, "offshore_lon": 3.777647, "name": "Renesse (West)", "station": "brouwersdam.brouwershavensegat.2", "heading": 340, "head_range": [-45, 45], "wind_range": [25, 50], "preset": True}
@@ -158,7 +158,7 @@ if 'disp_forecast' not in st.session_state or st.session_state.update_forecast o
         st.session_state.disp_forecast['therm'] = forecast_display_therm(st.session_state.forecast['therm'])
 
 # Create tabs
-tabs=["Map Forecast", "Point Forecast", "Edit Points (not working yet)", "Settings"]
+tabs=["Map Forecast", "Point Forecast", "Settings"] #"Edit Points (not working yet)", 
 
 tab = st.segmented_control(
     'Tabs',
@@ -183,10 +183,10 @@ if tab == tabs[0]:
     disp_map_forecast(st.session_state)
 if tab == tabs[1]:
     disp_point_forecast(st.session_state)
-if tab == tabs[2]:
+#if tab == tabs[2]:
     #disp_edit_points(st.session_state)
-    st.write("Feature under development!")
-if tab == tabs[3]:
+    #st.write("Feature under development!")
+if tab == tabs[2]:
     disp_settings(st.session_state)
 
 

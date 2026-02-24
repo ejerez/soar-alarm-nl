@@ -11,9 +11,9 @@ def since_yesterday():
 def get_wind_measurements():
     locations = ddlpy.locations()
 
-    bool_stations = locations.index.isin(["ijmuiden.buitenhaven", "stellendam.haringvlietsluizen.schuif1", 
+    bool_stations = locations.index.isin(["ijmuiden.havenhoofd.zuid", "stellendam.haringvlietsluizen.schuif1", 
                                       "cadzand.1", "brouwersdam.brouwershavensegat.2"])
-    bool_grootheid_wind = locations["Grootheid.Code"].isin(["WINDSHD", "WINDRTG"])
+    bool_grootheid_wind = locations["Grootheid.Code"].isin(["WINDSHD", "WINDRTG", "WINDST"])
 
     selected = locations.loc[
         bool_stations
@@ -29,8 +29,10 @@ def get_wind_measurements():
         measurements = ddlpy.measurements(row, start_date=dates[0], end_date=dates[1])
         if not measurements.empty:
             if index not in data:
-                data[index] = {'lon': row["Lon"],
-                            'lat': row["Lat"]}
+                data[index] = {
+                    'name': row["Naam"],
+                    'lon': row["Lon"],
+                    'lat': row["Lat"]}
             data[index][row["Grootheid.Code"]] = measurements[["Meetwaarde.Waarde_Numeriek"]]
 
     return data

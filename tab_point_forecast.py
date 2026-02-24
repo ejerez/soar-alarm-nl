@@ -100,12 +100,25 @@ def disp_point_forecast(session_state):
             x=wind_meas.index.to_pydatetime(), 
             y=np.asarray(wind_meas['Meetwaarde.Waarde_Numeriek'].values.tolist())*3.6,
             name="Measured Windspeed",
-            line=dict(color='white' if dark_theme else 'black', width=0.5),
-            line_shape='linear',
+            marker=dict(color='white' if dark_theme else 'black', size=2.5),
             yaxis="y1",
             opacity=1,
             mode="markers"
         ))
+
+        if "WINDST" in session_state.measurements[selected_point["station"]]:
+            
+            gust_meas = session_state.measurements[selected_point["station"]]["WINDST"].truncate(before=sunrise, after=sunset)
+
+            fig_wind.add_trace(go.Scatter(
+                x=gust_meas.index.to_pydatetime(), 
+                y=np.asarray(gust_meas['Meetwaarde.Waarde_Numeriek'].values.tolist())*3.6,
+                name="Measured Gusts",
+                marker=dict(color='white' if dark_theme else 'black', size=2.5),
+                yaxis="y1",
+                opacity=1,
+                mode="markers"
+            ))
 
         if session_state.user.mode == 'soar':
             fig_wind.add_hrect(y0=selected_point['wind_range'][0], y1=selected_point['wind_range'][1],
@@ -232,10 +245,8 @@ def disp_point_forecast(session_state):
 
         st.plotly_chart(fig_temp_precip, width='stretch', on_select='ignore')
 
-        st.write(f"Weather station {selected_point['station']} used for measured data at {selected_point['name']}:",
-                 f"\n{session_state.measurements[selected_point['station']]['lat']}°N, {session_state.measurements[selected_point['station']]['lon']}°E",
-                 "\n\nForecast point requested offshore:",
-                 f"\n{selected_point['lat']}°N, {selected_point['lon']}°E")
+        st.write(f"Weather station \"{session_state.measurements[selected_point['station']]['name']}\" used for measured data at {selected_point['name']} at \n{session_state.measurements[selected_point['station']]['lat']}°N, {session_state.measurements[selected_point['station']]['lon']}°E",
+                 f"\n\nForecast point requested offshore at \n{selected_point['lat']}°N, {selected_point['lon']}°E. Actual forecast point depends on the model and its resolution.")
 
 
         
