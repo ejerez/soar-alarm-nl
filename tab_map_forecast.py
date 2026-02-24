@@ -104,7 +104,7 @@ def disp_map_forecast(session_state):
     x_end="Finish", 
     y="Day",
     color="Wind",
-    text="Description",
+    #text="Description",
     color_discrete_map = {'Not flyable': '#000000' if st.session_state.dark_theme else '#FFFFFF', 'Good': '#1FD100', 'Cross': '#D68800'}
     )
 
