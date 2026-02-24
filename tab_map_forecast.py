@@ -110,5 +110,5 @@ def disp_map_forecast(session_state):
 
     flyable.update_layout(showlegend=False, 
                           xaxis=dict(title="Time", fixedrange=True),
-                          yaxis=dict(title="", side="left", fixedrange=True, 'visible': False, 'showticklabels': True)
+                          yaxis=dict(title="", side="left", fixedrange=True, 'visible': False, 'showticklabels': True))
     st.plotly_chart(flyable, width='stretch', on_select='ignore')
