@@ -2,7 +2,6 @@ from datetime import datetime, date, timedelta
 import datetime as dt
 import ddlpy
 import pandas as pd
-import matplotlib.pyplot as plt
 
 def since_yesterday():
     now = datetime.now()

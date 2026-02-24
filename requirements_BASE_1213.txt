@@ -1,0 +1,12 @@
+streamlit
+pandas
+streamlit_folium
+folium
+numpy
+datetime
+openmeteo_requests
+requests_cache
+retry_requests
+plotly
+scipy
+knmy
