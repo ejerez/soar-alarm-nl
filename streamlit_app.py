@@ -3,6 +3,8 @@ import streamlit as st
 from datetime import datetime, time
 from os import path
 from streamlit_cookies_controller import CookieController
+from dotmap import DotMap
+from time import sleep
 
 from backend import *
 from tab_map_forecast import disp_map_forecast
@@ -80,7 +82,6 @@ if 'forecast' in st.session_state and 'time' in st.session_state.forecast \
 
 if 'measurements' in st.session_state and 'time' in st.session_state.measurements \
     and (st.session_state.time - st.session_state.measurements['time']).total_seconds() >= 900:
-    print("Measurements outdated")
     st.session_state.update_measurements = True
 
 if 'current_date' not in st.session_state or st.session_state.update_forecast:
@@ -96,13 +97,13 @@ if 'mode' not in st.session_state.user:
     st.session_state.user.mode = 'soar'
 
 # Initialize forecast data if not already loaded
-if 'forecast' not in st.session_state:
+if 'forecast' not in st.session_state or len(st.session_state.forecast) == 0:
     make_forecast()
 
-if 'measurements' not in st.session_state:
+if 'measurements' not in st.session_state or len(st.session_state.measurements) == 0:
     make_measurements()
 
-if 'disp_forecast' not in st.session_state:
+if 'disp_forecast' not in st.session_state or len(st.session_state.disp_forecast) == 0:
     make_disp_forecast()
 
 # Create tabs

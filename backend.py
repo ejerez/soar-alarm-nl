@@ -3,9 +3,7 @@ import pickle
 
 from json import load
 from os import remove
-from dotmap import DotMap
-from time import sleep
-from datetime import datetime, timedelta, time
+from datetime import datetime
 
 from process_forecast import *
 from make_gis_map import *
