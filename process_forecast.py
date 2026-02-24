@@ -238,13 +238,17 @@ def process_therm_forecast(_raw_forecast):
 
 def forecast_display_soar(forecast):
     disp_forecast = []
-    for day in forecast:
+    for day_idx, day in enumerate(forecast):
         day_forecast = []
         for i, point_forecast in enumerate(day):
             point = st.session_state.soar_points[i]
             wind_pizza = np.zeros(3)
-
+            start = None
+            prev = None
+            gantt = []
+            last_time = None
             for i, time in enumerate(point_forecast["time"]):
+                
                 # Check basic conditions
                 if start_window(time) < time < end_window(time) \
                 and point_forecast["precipitation"][i] < 0.01 \
@@ -253,15 +257,44 @@ def forecast_display_soar(forecast):
                 and point_forecast["wind_gusts"][i] < point['wind_range'][1]:
                     rel_head = point_forecast["wind_direction"][i] - point["heading"]
                     if point['head_range'][0] < rel_head < -22.5:
+                        if prev != 'cross':
+                            if prev is not None:
+                                gantt.append([prev, (start, time+timedelta(days=-day_idx))])
+                            start = time+timedelta(days=-day_idx)
                         wind_pizza[0] += 1
+                        prev = 'cross'
                     elif -22.5 < rel_head < 22.5:
+                        if prev != 'good':
+                            if prev is not None:
+                                gantt.append([prev, (start, time+timedelta(days=-day_idx))])
+                            start = time+timedelta(days=-day_idx)
                         wind_pizza[1] += 1
+                        prev = 'good'
                     elif  22.5 < rel_head < point['head_range'][1]:
+                        if prev != 'cross':
+                            if prev is not None:
+                                gantt.append([prev, (start, time+timedelta(days=-day_idx))])
+                            start = time+timedelta(days=-day_idx)
                         wind_pizza[2] += 1
+                        prev = 'cross'
+                    else:
+                        if prev != 'no':
+                            if prev is not None:
+                                gantt.append([prev, (start, time+timedelta(days=-day_idx))])
+                            start = time+timedelta(days=-day_idx)
+                        prev = 'no' 
+                else:
+                    if prev != 'no':
+                        if prev is not None:
+                            gantt.append([prev, (start, time+timedelta(days=-day_idx))])
+                        start = time+timedelta(days=-day_idx)
+                    prev = 'no' 
+                last_time = time
+            gantt.append([prev, (start, last_time+timedelta(days=-day_idx))])         
 
             good_hours = wind_pizza[1]
             cross_hours = wind_pizza[0] + wind_pizza[2]
-            day_forecast.append({"wind_pizza": wind_pizza, "good_hours": good_hours, "cross_hours": cross_hours})
+            day_forecast.append({"gantt": gantt, "wind_pizza": wind_pizza, "good_hours": good_hours, "cross_hours": cross_hours})
         disp_forecast.append(day_forecast)
     return disp_forecast
 

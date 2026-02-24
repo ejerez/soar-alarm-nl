@@ -2,18 +2,11 @@ import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
 
-from streamlit_javascript import st_javascript
 from datetime import timedelta
 
 from process_forecast import *
 
 def disp_point_forecast(session_state):
-
-    st_theme = st_javascript("""window.getComputedStyle(window.parent.document.getElementsByClassName("stApp")[0]).getPropertyValue("color-scheme")""")
-    if st_theme == "dark":
-        dark_theme = True
-    else:
-        dark_theme = False
 
     # Point selection
     if session_state.user.mode == 'soar':
@@ -100,7 +93,7 @@ def disp_point_forecast(session_state):
             x=wind_meas.index.to_pydatetime(), 
             y=np.asarray(wind_meas['Meetwaarde.Waarde_Numeriek'].values.tolist())*3.6,
             name="Measured Windspeed",
-            marker=dict(color='white' if dark_theme else 'black', size=2.5),
+            marker=dict(color='white' if st.session_state.dark_theme else 'black', size=2.5),
             yaxis="y1",
             opacity=1,
             mode="markers"
@@ -114,7 +107,7 @@ def disp_point_forecast(session_state):
                 x=gust_meas.index.to_pydatetime(), 
                 y=np.asarray(gust_meas['Meetwaarde.Waarde_Numeriek'].values.tolist())*3.6,
                 name="Measured Gusts",
-                marker=dict(color='white' if dark_theme else 'black', size=2.5),
+                marker=dict(color='white' if st.session_state.dark_theme else 'black', size=2.5),
                 yaxis="y1",
                 opacity=1,
                 mode="markers"
@@ -151,9 +144,9 @@ def disp_point_forecast(session_state):
             upper_ideal = selected_point["heading"] + 22.5
             upper_bound = selected_point["heading"] + selected_point["head_range"][1]
 
-            fig_dir.add_hrect(y0=lower_ideal, y1=upper_ideal, fillcolor="rgba(153,255,51,0.7)", opacity=0.8 if dark_theme else 0.5, line_width=0)
-            fig_dir.add_hrect(y0=lower_bound, y1=lower_ideal, fillcolor="rgba(255,153,51,0.7)", opacity=0.8 if dark_theme else 0.5, line_width=0)
-            fig_dir.add_hrect(y0=upper_ideal, y1=upper_bound, fillcolor="rgba(255,153,51,0.7)", opacity=0.8 if dark_theme else 0.5, line_width=0)
+            fig_dir.add_hrect(y0=lower_ideal, y1=upper_ideal, fillcolor="rgba(153,255,51,0.7)", opacity=0.8 if st.session_state.dark_theme else 0.5, line_width=0)
+            fig_dir.add_hrect(y0=lower_bound, y1=lower_ideal, fillcolor="rgba(255,153,51,0.7)", opacity=0.8 if st.session_state.dark_theme else 0.5, line_width=0)
+            fig_dir.add_hrect(y0=upper_ideal, y1=upper_bound, fillcolor="rgba(255,153,51,0.7)", opacity=0.8 if st.session_state.dark_theme else 0.5, line_width=0)
         else:  # Thermal
             start_heading = selected_point.get("start_heading_range", 0)
             end_heading = selected_point.get("end_heading_range", 360)
@@ -170,7 +163,7 @@ def disp_point_forecast(session_state):
             x=day_forecast["time"],
             y=day_forecast["wind_direction"],
             name="Wind Direction",
-            line=dict(color='white' if dark_theme else 'black', width=2, dash='dash'),
+            line=dict(color='white' if st.session_state.dark_theme else 'black', width=2, dash='dash'),
             line_shape='spline',
             yaxis="y1",
             mode="lines"
@@ -183,7 +176,7 @@ def disp_point_forecast(session_state):
             x=head_meas.index.to_pydatetime(),
             y=np.asarray(head_meas['Meetwaarde.Waarde_Numeriek'].values.tolist()),
             name="Wind Direction",
-            line=dict(color='white' if dark_theme else 'black', width=1),
+            line=dict(color='white' if st.session_state.dark_theme else 'black', width=1),
             line_shape='linear',
             yaxis="y1",
             mode="lines"
@@ -222,7 +215,7 @@ def disp_point_forecast(session_state):
             x=day_forecast["time"],
             y=day_forecast["visibility"],
             name="Visibility",
-            line=dict(color='white' if dark_theme else 'black', width=2),
+            line=dict(color='white' if st.session_state.dark_theme else 'black', width=2),
             yaxis="y2",
             line_shape='spline',
             mode="lines"

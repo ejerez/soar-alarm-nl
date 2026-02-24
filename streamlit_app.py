@@ -5,6 +5,7 @@ from os import path
 from streamlit_cookies_controller import CookieController
 from dotmap import DotMap
 from time import sleep
+from streamlit_javascript import st_javascript
 
 from backend import *
 from tab_map_forecast import disp_map_forecast
@@ -22,11 +23,20 @@ st.set_page_config(
 # Main app
 st.title("Soaralarm NL")
 
+st_theme = st_javascript("""window.getComputedStyle(window.parent.document.getElementsByClassName("stApp")[0]).getPropertyValue("color-scheme")""")
+if st_theme == "dark":
+    st.session_state.dark_theme = True
+else:
+    st.session_state.dark_theme = False
+
 cookies = CookieController()
 
 if 'user' not in st.session_state:
-    user_data_cookies = {cookie: cookies.get(cookie) for cookie in ["user_model", "user_time_range"]}
-    sleep(0.7)
+    try:
+        user_data_cookies = {cookie: cookies.get(cookie) for cookie in ["user_model", "user_time_range"]}
+        sleep(0.7)
+    except:
+        user_data_cookies = {}
     
     user_data = {}
 
@@ -34,7 +44,7 @@ if 'user' not in st.session_state:
         if key.startswith("user_"):
             user_data[key.lstrip("user_")] = user_data_cookies[key]
     
-    if user_data['time_range'] is not None:
+    if 'time_range' in user_data and user_data['time_range'] is not None:
         user_data['time_range'] = (time.fromisoformat(user_data['time_range'][0]), time.fromisoformat(user_data['time_range'][1]))
         st.session_state.user = DotMap(user_data)
     else:
