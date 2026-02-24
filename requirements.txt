@@ -9,4 +9,6 @@ requests_cache
 retry_requests
 plotly
 scipy
-knmy
+streamlit-cookies-controller
+dotmap
+rws-ddlpy

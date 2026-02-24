@@ -6,6 +6,8 @@ import requests_cache
 from retry_requests import retry
 from datetime import timedelta
 
+from get_measured_data import get_wind_measurements
+
 def get_forecast_soar(model = "knmi_seamless"):
     forecast = []
     url = "https://api.open-meteo.com/v1/forecast"
@@ -246,7 +248,7 @@ def forecast_display_soar(forecast):
                 # Check basic conditions
                 if start_window(time) < time < end_window(time) \
                 and point_forecast["precipitation"][i] < 0.01 \
-                and point_forecast["visibility"][i] > 0.1 \
+                and point_forecast["visibility"][i] > 99 \
                 and point_forecast["wind_speed"][i] > point['wind_range'][0] \
                 and point_forecast["wind_gusts"][i] < point['wind_range'][1]:
                     rel_head = point_forecast["wind_direction"][i] - point["heading"]
@@ -304,7 +306,7 @@ def start_day(daily, point):
     return daily[point]["sunrise"]+timedelta(hours=-1)
 
 def end_day(daily, point):
-    return daily[point]["sunset"]+timedelta(hours=1)
+    return daily[point]["sunset"]+timedelta(hours=2)
 
 def start_window(time):
     return time.replace(hour=st.session_state.user.time_range[0].hour, minute=st.session_state.user.time_range[0].minute)

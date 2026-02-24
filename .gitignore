@@ -2,7 +2,8 @@
 
 .cache.sqlite
 .devcontainer/
-session_state.pkl
+*.pkl
+*xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
