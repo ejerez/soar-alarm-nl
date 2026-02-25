@@ -20,8 +20,10 @@ def load_forecast():
         with open("forecast.pkl", "rb") as f:
             st.session_state.forecast = pickle.load(f)
     except:
-        pass
-        #remove("forecast.pkl")
+        try:
+            remove("forecast.pkl")
+        except:
+            pass
 
 def load_measurements():
     try:
@@ -29,8 +31,10 @@ def load_measurements():
         with open("measurements.pkl", "rb") as f:
             st.session_state.measurements = pickle.load(f)
     except:
-        pass
-        #remove("measurements.pkl")
+        try:
+            remove("measurements.pkl")
+        except:
+            pass
 
 async def make_forecast():
     print("Getting forecasts")

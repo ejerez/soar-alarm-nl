@@ -45,10 +45,10 @@ def disp_map_forecast(session_state):
                 max_flyable = flyable
                 best_flyable = index
             points.append([good, marginal])
+        if best_flyable == None:
+            best_flyable = 0
         if best == None:
             best = best_flyable
-        if best == None:
-            best = 0
         good_per_day.append(points[best][0])
         marginal_per_day.append(points[best][1])
         total_per_day.append(points[best][0]+points[best][1])
