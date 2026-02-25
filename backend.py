@@ -59,6 +59,8 @@ async def make_forecast():
     with open("forecast.pkl", "wb") as f:
         pickle.dump(st.session_state.forecast, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+    st.rerun()
+
 async def make_measurements():
     st.session_state.update_measurements = False
     
@@ -71,6 +73,8 @@ async def make_measurements():
     st.session_state.measurements['time'] = datetime.now()
     with open("measurements.pkl", "wb") as f:
         pickle.dump(st.session_state.measurements, f, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    st.rerun()
 
 def make_disp_forecast():
     #if 'soar_knmi' in st.session_state.forecast and 'soar_ecmwf' in st.session_state.forecast:

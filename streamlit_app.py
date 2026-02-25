@@ -15,6 +15,12 @@ from tab_edit_points import disp_edit_points
 from tab_point_forecast import disp_point_forecast
 from tab_settings import disp_settings
 
+try:
+    remove("forecast.pkl")
+    remove("measurements.pkl")
+except:
+    pass
+
 # Monkey patch Streamlit's internal event loop
 nest_asyncio.apply()
 
@@ -130,10 +136,10 @@ if 'mode' not in st.session_state.user:
 
 # Initialize forecast data if not already loaded
 if 'forecast' not in st.session_state or len(st.session_state.forecast) == 0:
-    asyncio.get_event_loop().run_until_complete(make_forecast())
+    asyncio.run(make_forecast())
 
 if 'measurements' not in st.session_state or len(st.session_state.measurements) == 0:
-    asyncio.get_event_loop().run_until_complete(make_measurements())
+    asyncio.run(make_measurements())
 
 if 'disp_forecast' not in st.session_state or len(st.session_state.disp_forecast) == 0:
     make_disp_forecast()
