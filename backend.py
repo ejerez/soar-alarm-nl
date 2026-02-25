@@ -83,8 +83,9 @@ def make_disp_forecast():
     st.session_state.update_disp_forecast = False
     st.session_state.disp_forecast = {}
 
-    st.session_state.disp_forecast['soar_knmi'] = forecast_display_soar(st.session_state.forecast['soar_knmi'])
-    st.session_state.disp_forecast['soar_ecmwf'] = forecast_display_soar(st.session_state.forecast['soar_ecmwf'])
-    #st.session_state.disp_forecast['therm'] = forecast_display_therm(st.session_state.forecast['therm'])
+    if 'soar_knmi' in st.session_state.forecast and 'soar_ecmwf' in st.session_state.forecast:
+        st.session_state.disp_forecast['soar_knmi'] = forecast_display_soar(st.session_state.forecast['soar_knmi'])
+        st.session_state.disp_forecast['soar_ecmwf'] = forecast_display_soar(st.session_state.forecast['soar_ecmwf'])
+        #st.session_state.disp_forecast['therm'] = forecast_display_therm(st.session_state.forecast['therm'])
 
 
