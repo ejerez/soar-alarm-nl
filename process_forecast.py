@@ -8,7 +8,7 @@ from datetime import timedelta
 
 from get_measured_data import get_wind_measurements
 
-def get_forecast_soar(model = "knmi_seamless"):
+async def get_forecast_soar(model = "knmi_seamless"):
     forecast = []
     url = "https://api.open-meteo.com/v1/forecast"
 
@@ -72,9 +72,12 @@ def get_forecast_soar(model = "knmi_seamless"):
         }
 
         forecast.append({"id": id, "daily_data": daily_data, "hourly_data": hourly_data})
-    return forecast
+    if model == "knmi_seamless":
+        st.session_state.raw_forecast['soar_knmi'] = forecast
+    else:
+        st.session_state.raw_forecast['soar_ecmwf'] = forecast
 
-def get_forecast_therm():
+async def get_forecast_therm():
     forecast = []
     url = "https://api.open-meteo.com/v1/forecast"
 
@@ -132,8 +135,8 @@ def get_forecast_therm():
         forecast.append({"id": id, "daily_data": daily_data, "hourly_data": hourly_data})
     return forecast
 
-def process_soar_forecast(_raw_forecast):
-    dates = list(set([date.date() for date in _raw_forecast[0]["daily_data"]["date"]]))
+async def process_soar_forecast(model="soar_knmi"):
+    dates = list(set([date.date() for date in st.session_state.raw_forecast[model][0]["daily_data"]["date"]]))
     dates.sort()
 
     if 'date_list' not in st.session_state:
@@ -146,7 +149,7 @@ def process_soar_forecast(_raw_forecast):
                         if point_forecast["daily_data"]["date"][i].date() == date),
             "sunset": next(data for i, data in enumerate(point_forecast["daily_data"]["sunset"])
                         if point_forecast["daily_data"]["date"][i].date() == date)
-        } for point_forecast in _raw_forecast]
+        } for point_forecast in st.session_state.raw_forecast[model]]
 
         day_forecast = [{
             "sunrise": daily[point]["sunrise"],
@@ -174,12 +177,14 @@ def process_soar_forecast(_raw_forecast):
             "wind_gusts": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_gusts"])
                         if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
                             and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))]
-        } for point, point_forecast in enumerate(_raw_forecast)]
+        } for point, point_forecast in enumerate(st.session_state.raw_forecast[model])]
         forecast.append(day_forecast)
-    return forecast
+    
+    st.session_state.forecast[model] = forecast
 
-def process_therm_forecast(_raw_forecast):
-    dates = list(set([date.date() for date in _raw_forecast[0]["daily_data"]["date"]]))
+
+async def process_therm_forecast():
+    dates = list(set([date.date() for date in st.session_state.raw_forecast[0]["daily_data"]["date"]]))
     dates.sort()
 
     if 'date_list' not in st.session_state:
@@ -192,7 +197,7 @@ def process_therm_forecast(_raw_forecast):
                         if point_forecast["daily_data"]["date"][i].date() == date),
             "sunset": next(data for i, data in enumerate(point_forecast["daily_data"]["sunset"])
                         if point_forecast["daily_data"]["date"][i].date() == date)
-        } for point_forecast in _raw_forecast]
+        } for point_forecast in st.session_state.raw_forecast]
 
         day_forecast = [{
             "sunrise": daily[point]["sunrise"],
@@ -232,7 +237,7 @@ def process_therm_forecast(_raw_forecast):
             "wind_gusts": [data for i, data in enumerate(point_forecast["hourly_data"]["wind_gusts"])
                         if (point_forecast["hourly_data"]["date"][i] >= start_day(daily, point)
                             and point_forecast["hourly_data"]["date"][i] <= end_day(daily, point))]
-        } for point, point_forecast in enumerate(_raw_forecast)]
+        } for point, point_forecast in enumerate(st.session_state.raw_forecast)]
         forecast.append(day_forecast)
     return forecast
 

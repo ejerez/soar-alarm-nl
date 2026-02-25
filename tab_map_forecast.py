@@ -9,7 +9,7 @@ from make_gis_map import *
 
 def disp_map_forecast(session_state):
     # Create and display map with current date's forecast
-    model = "soar_kmni" if session_state.user.model == "KNMI" else "soar_ecmwf"
+    model = "soar_knmi" if session_state.user.model == "KNMI" else "soar_ecmwf"
     
     if session_state.user.mode == 'soar':
         current_map = create_soar_map_forecast(session_state.selected_date_idx, model=model)

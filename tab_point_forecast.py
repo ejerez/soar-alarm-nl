@@ -26,7 +26,7 @@ def disp_point_forecast(session_state):
     if session_state.selected_point_idx != selected_point_idx:
         session_state.selected_point_idx = selected_point_idx
 
-    model = "soar_kmni" if session_state.user.model == "KNMI" else "soar_ecmwf"
+    model = "soar_knmi" if session_state.user.model == "KNMI" else "soar_ecmwf"
 
     # Get forecast data
     if session_state.user.mode == 'soar':

@@ -11,7 +11,7 @@ from retry_requests import retry
 import plotly.graph_objects as go
 from scipy.spatial.transform import Rotation as R
 
-def create_soar_map_forecast(date_idx, model='soar_kmni'):
+def create_soar_map_forecast(date_idx, model='soar_knmi'):
     """Create a complete map with forecast data for the given date"""
     m = folium.Map(
         location=[52.038516, 4.388762],

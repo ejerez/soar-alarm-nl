@@ -1,4 +1,5 @@
 import streamlit as st
+import asyncio
 
 from datetime import datetime, time
 from os import path
@@ -105,10 +106,12 @@ if 'mode' not in st.session_state.user:
 
 # Initialize forecast data if not already loaded
 if 'forecast' not in st.session_state or len(st.session_state.forecast) == 0:
-    make_forecast()
+    if __name__ == "__main__":
+        asyncio.run(make_forecast())
 
 if 'measurements' not in st.session_state or len(st.session_state.measurements) == 0:
-    make_measurements()
+    if __name__ == "__main__":
+        asyncio.run(make_measurements())
 
 if 'disp_forecast' not in st.session_state or len(st.session_state.disp_forecast) == 0:
     make_disp_forecast()
