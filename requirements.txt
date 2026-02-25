@@ -14,4 +14,3 @@ dotmap
 rws-ddlpy
 streamlit_javascript
 asyncio
-nest_asyncio
