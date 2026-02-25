@@ -57,9 +57,13 @@ def disp_map_forecast(session_state):
 
         for gantt in gantt_raw:
             gantt_per_day.append(
-                dict(Wind='Not flyable' if gantt[0]=='no' else 'Good' if gantt[0]=='good' else 'Cross', 
-                     Point=session_state.soar_points[best]['name'], Start=gantt[1][0], Finish=gantt[1][1], Day=session_state.day_list[day])
+                dict(
+                    Wind='Not flyable' if gantt[0]=='no' else 'Good' if gantt[0]=='good' else 'Cross', 
+                    Point='' if gantt[0]=='no' else session_state.soar_points[best]['name'], 
+                    Start=gantt[1][0], Finish=gantt[1][1], Day=session_state.day_list[day]
                 )
+            )
+    
 
     if session_state.user.mode == 'soar':
         best_point_list = [session_state.soar_points[idx]['name'] for idx in best_per_day]
@@ -100,9 +104,12 @@ def disp_map_forecast(session_state):
     x_end="Finish", 
     y="Day",
     color="Wind",
-    text="Point",
-    color_discrete_map = {'Not flyable': '#000000' if st.session_state.dark_theme else '#FFFFFF', 'Good': '#1FD100', 'Cross': '#D68800'}
+    color_discrete_map = {'Not flyable': '#000000' if st.session_state.dark_theme else '#FFFFFF', 'Good': '#1FD100', 'Cross': '#D68800'},
+    hover_name="Point",
+    hover_data=["Wind"]
     )
 
-    flyable.update_layout(showlegend=False)
+    flyable.update_layout(showlegend=False, 
+                          xaxis=dict(title="Time", fixedrange=True),
+                          yaxis=dict(title="", side="left", fixedrange=True))
     st.plotly_chart(flyable, width='stretch', on_select='ignore')
