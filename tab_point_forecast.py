@@ -87,6 +87,9 @@ def disp_point_forecast(session_state):
         sunrise = (day_forecast["sunrise"]).replace(minute=0, second=0, microsecond=0)+timedelta(hours=-1)
         sunset = (day_forecast["sunset"]).replace(minute=0, second=0, microsecond=0)+timedelta(hours=1)
 
+        if selected_point["station"] not in session_state.measurements:
+            st.session_state.remove_measurements = True
+
         wind_meas = session_state.measurements[selected_point["station"]]["WINDSHD"].truncate(before=sunrise, after=sunset)
 
         fig_wind.add_trace(go.Scatter(
