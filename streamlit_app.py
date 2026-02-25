@@ -1,5 +1,6 @@
 import streamlit as st
 import asyncio
+import nest_asyncio
 
 from datetime import datetime, time
 from os import path
@@ -13,6 +14,9 @@ from tab_map_forecast import disp_map_forecast
 from tab_edit_points import disp_edit_points
 from tab_point_forecast import disp_point_forecast
 from tab_settings import disp_settings
+
+# Monkey patch Streamlit's internal event loop
+nest_asyncio.apply()
 
 # Set page config
 st.set_page_config(
@@ -126,10 +130,23 @@ if 'mode' not in st.session_state.user:
 
 # Initialize forecast data if not already loaded
 if 'forecast' not in st.session_state or len(st.session_state.forecast) == 0:
-    asyncio.run(make_forecast())
+    loop = asyncio.get_event_loop()
+    
+    try:
+        loop.run_until_complete(
+            make_forecast()
+            )
+    except:
+        pass
 
 if 'measurements' not in st.session_state or len(st.session_state.measurements) == 0:
-    asyncio.run(make_measurements())
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(
+            make_measurements()
+            )
+    except:
+        pass
 
 if 'disp_forecast' not in st.session_state or len(st.session_state.disp_forecast) == 0:
     make_disp_forecast()
