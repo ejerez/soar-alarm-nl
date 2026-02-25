@@ -13,3 +13,4 @@ streamlit-cookies-controller
 dotmap
 rws-ddlpy
 streamlit_javascript
+asyncio
