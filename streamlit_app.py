@@ -53,11 +53,31 @@ if 'user' not in st.session_state:
 
 st.session_state.time = datetime.now()
 
+if 'remove_forecast' not in st.session_state:
+    st.session_state.remove_forecast = False
+
 if 'forecast' not in st.session_state and path.isfile("forecast.pkl"):
     load_forecast()
 
+if st.session_state.remove_forecast:
+    try:
+        remove("forecast.pkl")
+        st.session_state.remove_forecast = False
+    except:
+        pass
+
+if 'remove_measurements' not in st.session_state:
+    st.session_state.remove_measurements = False
+
 if 'measurements' not in st.session_state and path.isfile("measurements.pkl"):
     load_measurements()
+
+if st.session_state.remove_measurements:
+    try:
+        remove("measurements.pkl")
+        st.session_state.remove_measurements = False
+    except:
+        pass
 
 if 'soar_points' not in st.session_state:
     load_points()

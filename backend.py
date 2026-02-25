@@ -19,11 +19,10 @@ def load_forecast():
         #with st.spinner(text="Loading previous forecasts..."):
         with open("forecast.pkl", "rb") as f:
             st.session_state.forecast = pickle.load(f)
+            if 'soar_knmi' not in st.session_state.forecast or 'soar_ecmwf' not in st.session_state.forecast:
+                st.session_state.remove_forecast = True            
     except:
-        try:
-            remove("forecast.pkl")
-        except:
-            pass
+        st.session_state.remove_forecast = True
 
 def load_measurements():
     try:
@@ -31,10 +30,7 @@ def load_measurements():
         with open("measurements.pkl", "rb") as f:
             st.session_state.measurements = pickle.load(f)
     except:
-        try:
-            remove("measurements.pkl")
-        except:
-            pass
+        st.session_state.remove_measurements = True
 
 async def make_forecast():
     print("Getting forecasts")
@@ -83,9 +79,8 @@ def make_disp_forecast():
     st.session_state.update_disp_forecast = False
     st.session_state.disp_forecast = {}
 
-    if 'soar_knmi' in st.session_state.forecast and 'soar_ecmwf' in st.session_state.forecast:
-        st.session_state.disp_forecast['soar_knmi'] = forecast_display_soar(st.session_state.forecast['soar_knmi'])
-        st.session_state.disp_forecast['soar_ecmwf'] = forecast_display_soar(st.session_state.forecast['soar_ecmwf'])
-        #st.session_state.disp_forecast['therm'] = forecast_display_therm(st.session_state.forecast['therm'])
+    st.session_state.disp_forecast['soar_knmi'] = forecast_display_soar(st.session_state.forecast['soar_knmi'])
+    st.session_state.disp_forecast['soar_ecmwf'] = forecast_display_soar(st.session_state.forecast['soar_ecmwf'])
+    #st.session_state.disp_forecast['therm'] = forecast_display_therm(st.session_state.forecast['therm'])
 
 
