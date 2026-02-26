@@ -111,10 +111,12 @@ if 'update_disp_forecast' not in st.session_state:
 if 'forecast' in st.session_state and 'time' in st.session_state.forecast \
     and (st.session_state.time - st.session_state.forecast['time']).total_seconds() >= 3600:
     st.session_state.update_forecast = True
+    st.sessiom_state.remove_forecast = True
 
 if 'measurements' in st.session_state and 'time' in st.session_state.measurements \
     and (st.session_state.time - st.session_state.measurements['time']).total_seconds() >= 900:
     st.session_state.update_measurements = True
+    st.session_state.remove_measurements = True
 
 if 'current_date' not in st.session_state or st.session_state.update_forecast:
     st.session_state.current_date = datetime.now().date()
