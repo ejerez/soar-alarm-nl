@@ -52,6 +52,7 @@ async def make_forecast():
 
     st.session_state.forecast['time'] = datetime.now()
     st.session_state.updating_forecast = False
+    st.session_state.update_disp_forecast = True
 
     with open("forecast.pkl", "wb") as f:
         pickle.dump(st.session_state.forecast, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -65,6 +66,7 @@ async def make_measurements():
 
     st.session_state.measurements['time'] = datetime.now()
     st.session_state.updating_measurements = False
+    st.session_state.update_disp_forecast = True
     
     with open("measurements.pkl", "wb") as f:
         pickle.dump(st.session_state.measurements, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -72,7 +74,6 @@ async def make_measurements():
 def make_disp_forecast():
     #if 'soar_knmi' in st.session_state.forecast and 'soar_ecmwf' in st.session_state.forecast:
     #with st.spinner("Processing forecast..."):
-    st.session_state.update_forecast = False
     st.session_state.update_disp_forecast = False
     st.session_state.disp_forecast = {}
 
