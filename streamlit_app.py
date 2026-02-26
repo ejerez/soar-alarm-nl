@@ -1,6 +1,7 @@
 import streamlit as st
 import asyncio
 import nest_asyncio
+import traceback
 
 from datetime import datetime, time
 from os import path
@@ -174,21 +175,25 @@ if selected_date_idx != st.session_state.selected_date_idx:
 if tab == tabs[0]:
     try:
         disp_map_forecast(st.session_state)
-    except:
-        Exception as e: print("Map Forecast Tab \n", e)
+    except Exception:
+        print("Map Forecast Tab \n")
+        traceback.print_exc()
 if tab == tabs[1]:
     try:
         disp_point_forecast(st.session_state)
-    except:
-        Exception as e: print("Point Forecast Tab \n", e)
+    except Exception:
+        print("Point Forecast Tab \n")
+        traceback.print_exc()
 #if tab == tabs[2]:
     #disp_edit_points(st.session_state)
     #st.write("Feature under development!")
 if tab == tabs[2]:
     try:
         disp_settings(st.session_state)
-    except:
-        Exception as e: print("Settings Tab \n", e)
+    except Exception:
+        print("Settings Tab \n")
+        traceback.print_exc()
+        
 
 #Update forecasts
 if st.session_state.update_forecast and not st.session_state.updating_forecast:
