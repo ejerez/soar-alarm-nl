@@ -110,11 +110,13 @@ if 'update_disp_forecast' not in st.session_state:
 
 if 'forecast' in st.session_state and 'time' in st.session_state.forecast \
     and (st.session_state.time - st.session_state.forecast['time']).total_seconds() >= 3600:
+    print("update forecast")
     st.session_state.update_forecast = True
     st.session_state.remove_forecast = True
 
 if 'measurements' in st.session_state and 'time' in st.session_state.measurements \
     and (st.session_state.time - st.session_state.measurements['time']).total_seconds() >= 900:
+    print("update_measurements")
     st.session_state.update_measurements = True
     st.session_state.remove_measurements = True
 
@@ -132,9 +134,11 @@ if 'mode' not in st.session_state.user:
 
 # Initialize forecast data if not already loaded
 if 'forecast' not in st.session_state or len(st.session_state.forecast) == 0:
+    print("updating forecast")
     asyncio.run(make_forecast())
 
 if 'measurements' not in st.session_state or len(st.session_state.measurements) == 0:
+    print("updating measurements")
     asyncio.run(make_measurements())
 
 if 'disp_forecast' not in st.session_state or len(st.session_state.disp_forecast) == 0:
