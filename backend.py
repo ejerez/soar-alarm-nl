@@ -34,8 +34,6 @@ def load_measurements():
 
 async def make_forecast():
     print("Getting forecasts")
-    st.session_state.update_forecast = False
-    
     #with st.spinner("Fetching forecast..."):
     st.session_state.raw_forecast = {}
     st.session_state.forecast = {}
@@ -52,16 +50,13 @@ async def make_forecast():
     await processing_forecast_knmi
     await processing_forecast_ecmwf
 
-    #st.session_state.forecast['therm'] = process_therm_forecast(get_forecast_therm())
-    
     st.session_state.forecast['time'] = datetime.now()
+    st.session_state.updating_forecast = False
 
     with open("forecast.pkl", "wb") as f:
         pickle.dump(st.session_state.forecast, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-async def make_measurements():
-    st.session_state.update_measurements = False
-    
+async def make_measurements(): 
     #with st.spinner("Fetching measurements..."):
     st.session_state.measurements = {}
 
@@ -69,6 +64,8 @@ async def make_measurements():
     await getting_measurements
 
     st.session_state.measurements['time'] = datetime.now()
+    st.session_state.updating_measurements = False
+    
     with open("measurements.pkl", "wb") as f:
         pickle.dump(st.session_state.measurements, f, protocol=pickle.HIGHEST_PROTOCOL)
 
