@@ -147,7 +147,7 @@ if 'measurements' not in st.session_state or len(st.session_state.measurements) 
     st.session_state.update_measurements = True  
 
 if 'disp_forecast' not in st.session_state or len(st.session_state.disp_forecast) == 0:
-    make_disp_forecast()
+    st.session_state.update_disp_forecast = True
 
 # Create tabs
 tabs=["Map Forecast", "Point Forecast", "Settings"] #"Edit Points (not working yet)", 
@@ -172,29 +172,6 @@ selected_date_idx = st.session_state.day_list.index(selected_date)
 if selected_date_idx != st.session_state.selected_date_idx:
     st.session_state.selected_date_idx = selected_date_idx
 
-if tab == tabs[0]:
-    try:
-        disp_map_forecast(st.session_state)
-    except Exception:
-        print("Map Forecast Tab \n")
-        traceback.print_exc()
-if tab == tabs[1]:
-    try:
-        disp_point_forecast(st.session_state)
-    except Exception:
-        print("Point Forecast Tab \n")
-        traceback.print_exc()
-#if tab == tabs[2]:
-    #disp_edit_points(st.session_state)
-    #st.write("Feature under development!")
-if tab == tabs[2]:
-    try:
-        disp_settings(st.session_state)
-    except Exception:
-        print("Settings Tab \n")
-        traceback.print_exc()
-        
-
 #Update forecasts
 if st.session_state.update_forecast and not st.session_state.updating_forecast:
     st.session_state.update_forecast = False
@@ -208,8 +185,30 @@ if st.session_state.update_measurements and not st.session_state.updating_measur
     print("updating measurements")
     asyncio.run(make_measurements())
 
-if st.session_state.update_disp_forecast:
+if 'forecast' in st.session_state and st.session_state.update_disp_forecast:
     make_disp_forecast()
 
-if 'first_run_done' not in st.session_state:
-    st.session_state.first_run_done = True
+if tab == tabs[0]:
+    if 'disp_forecast' in st.session_state:
+        try:
+            disp_map_forecast(st.session_state)
+        except Exception:
+            print("Map Forecast Tab \n")
+            traceback.print_exc()
+if tab == tabs[1]:
+    if 'forecast' in st.session_state:
+        try:
+            disp_point_forecast(st.session_state)
+        except Exception:
+            print("Point Forecast Tab \n")
+            traceback.print_exc()
+#if tab == tabs[2]:
+    #disp_edit_points(st.session_state)
+    #st.write("Feature under development!")
+if tab == tabs[2]:
+    try:
+        disp_settings(st.session_state)
+    except Exception:
+        print("Settings Tab \n")
+        traceback.print_exc()
+
