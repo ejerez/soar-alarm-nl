@@ -105,18 +105,26 @@ if 'update_forecast' not in st.session_state:
     st.session_state.update_forecast = False
 if 'update_measurements' not in st.session_state:
     st.session_state.update_measurements = False
+if 'updating_forecast' not in st.session_state:
+    st.session_state.updating_forecast = False
+if 'updating_measurements' not in st.session_state:
+    st.session_state.updating_measurements = False
 if 'update_disp_forecast' not in st.session_state:
     st.session_state.update_disp_forecast = False
 
-if 'forecast' in st.session_state and 'time' in st.session_state.forecast \
-    and (st.session_state.time - st.session_state.forecast['time']).total_seconds() >= 3600:
-    print("update forecast")
-    st.session_state.update_forecast = True
+if 'forecast' in st.session_state and 'time' in st.session_state.forecast:
+    if (st.session_state.time - st.session_state.forecast['time']).total_seconds() >= 3600:
+        print("update forecast")
+        st.session_state.update_forecast = True
+    else:
+        st.session_state.update_forecast = False
 
-if 'measurements' in st.session_state and 'time' in st.session_state.measurements \
-    and (st.session_state.time - st.session_state.measurements['time']).total_seconds() >= 900:
-    print("update_measurements")
-    st.session_state.update_measurements = True
+if 'measurements' in st.session_state and 'time' in st.session_state.measurements:
+    if (st.session_state.time - st.session_state.measurements['time']).total_seconds() >= 900:
+        print("update_measurements")
+        st.session_state.update_measurements = True
+    else:
+        st.session_state.update_measurements = False
 
 if 'current_date' not in st.session_state or st.session_state.update_forecast:
     st.session_state.current_date = datetime.now().date()
@@ -132,12 +140,10 @@ if 'mode' not in st.session_state.user:
 
 # Initialize forecast data if not already loaded
 if 'forecast' not in st.session_state or len(st.session_state.forecast) == 0:
-    print("updating forecast")
-    asyncio.run(make_forecast())
+    st.session_state.update_forecast = True
 
 if 'measurements' not in st.session_state or len(st.session_state.measurements) == 0:
-    print("updating measurements")
-    asyncio.run(make_measurements())
+    st.session_state.update_measurements = True  
 
 if 'disp_forecast' not in st.session_state or len(st.session_state.disp_forecast) == 0:
     make_disp_forecast()
@@ -176,13 +182,19 @@ if tab == tabs[2]:
     disp_settings(st.session_state)
 
 #Update forecasts
-if st.session_state.update_forecast:
-    make_forecast()
+if st.session_state.update_forecast and not st.session_state.updating_forecast:
+    st.session_state.update_forecast = False
+    st.session_state.updating_forecast = True
+    print("updating forecast")
+    asyncio.run(make_forecast())
 
-if st.session_state.update_measurements:
-    make_measurements()
+if st.session_state.update_measurements and not st.session_state.updating_measurements:
+    st.session_state.update_measurements = False
+    st.session_state.updating_measurements = True
+    print("updating measurements")
+    asyncio.run(make_measurements())
 
-if st.session_state.update_forecast or st.session_state.update_disp_forecast:
+if st.session_state.update_disp_forecast:
     make_disp_forecast()
 
 if 'first_run_done' not in st.session_state:
