@@ -207,7 +207,8 @@ if tab == tabs[1]:
     #st.write("Feature under development!")
 if tab == tabs[2]:
     try:
-        disp_settings(st.session_state)
+        if 'soar_knmi' in st.session_state.forecast and 'soar_ecmwf' in st.session_state.forecast:
+            disp_settings(st.session_state)
     except Exception:
         print("Settings Tab \n")
         traceback.print_exc()
